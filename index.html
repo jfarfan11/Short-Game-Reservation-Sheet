@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Short Game Tee Sheet</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+
+:root{
+--green-deep:#16302A;
+--green-panel:#1E3F37;
+--cream:#F3EEDF;
+--clay:#B98546;
+--clay-dark:#96692F;
+--ink:#22241E;
+--sage:#DCE6DA;
+--red:#9C4238;
+--line: rgba(243,238,223,0.14);
+}
+
+*{box-sizing:border-box;}
+body{
+margin:0;
+background:var(--green-deep);
+color:var(--cream);
+font-family:'IBM Plex Sans', sans-serif;
+min-height:100vh;
+}
+.wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px;}
+
+.masthead{
+display:flex;
+justify-content:space-between;
+align-items:baseline;
+border-bottom:2px solid var(--clay);
+padding-bottom:14px;
+margin-bottom:18px;
+}
+.masthead h1{
+font-family:'Zilla Slab',serif;
+font-weight:700;
+font-size:26px;
+margin:0;
+letter-spacing:0.2px;
+}
+.masthead .sub{
+font-size:12px;
+color:var(--sage);
+margin-top:4px;
+}
+.role-pill{
+font-family:'IBM Plex Sans';
+font-size:12px;
+padding:5px 10px;
+border-radius:3px;
+background:var(--green-panel);
+border:1px solid var(--line);
+cursor:pointer;
+color:var(--cream);
+}
+.role-pill.manager{background:var(--clay);color:var(--ink);border-color:var(--clay);font-weight:600;}
+
+.datebar{
+display:flex;
+align-items:center;
+gap:10px;
+margin-bottom:16px;
+}
+.datebar button{
+background:var(--green-panel);
+border:1px solid var(--line);
+color:var(--cream);
+font-size:16px;
+width:34px;height:34px;
+border-radius:3px;
+cursor:pointer;
+}
+.datebar .dateinfo{flex:1;text-align:center;}
+.datebar .dateinfo .d{font-family:'Zilla Slab';font-size:18px;font-weight:600;}
+.datebar .dateinfo .tag{font-size:11px;color:var(--clay);margin-top:2px;text-transform:uppercase;letter-spacing:0.6px;}
+
+.sheet{
+background:var(--cream);
+color:var(--ink);
+border-radius:4px;
+overflow:hidden;
+box-shadow:0 8px 24px rgba(0,0,0,0.25);
+}
+.slot{
+display:flex;
+align-items:center;
+border-bottom:1px solid rgba(34,36,30,0.1);
+padding:12px 14px;
+gap:12px;
+}
+.slot:last-child{border-bottom:none;}
+.slot .time{
+font-family:'Zilla Slab';
+font-weight:600;
+font-size:15px;
+width:78px;
+flex-shrink:0;
+}
+.slot .info{flex:1;min-width:0;}
+.slot .name{font-weight:600;font-size:14px;}
+.slot .meta{font-size:12px;color:#5a5c50;margin-top:1px;}
+.slot.open .name{color:#5a5c50;font-weight:400;font-style:italic;}
+.slot.booked{background:rgba(156,66,56,0.07);}
+.slot.instructor{background:rgba(185,133,70,0.1);}
+.slot button.act{
+border:none;
+padding:7px 12px;
+border-radius:3px;
+font-size:12px;
+font-weight:600;
+cursor:pointer;
+font-family:'IBM Plex Sans';
+}
+.slot .book-btn{background:var(--clay);color:#fff;}
+.slot .cancel-btn{background:transparent;color:var(--red);border:1px solid var(--red);}
+
+.panel{
+background:var(--green-panel);
+border:1px solid var(--line);
+border-radius:4px;
+padding:16px;
+margin-top:18px;
+}
+.panel h2{font-family:'Zilla Slab';font-size:16px;margin:0 0 12px;}
+.row{display:flex;gap:10px;margin-bottom:10px;}
+.row label{display:block;font-size:11px;color:var(--sage);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
+input,select{
+width:100%;
+padding:9px 10px;
+border-radius:3px;
+border:1px solid var(--line);
+background:var(--green-deep);
+color:var(--cream);
+font-family:'IBM Plex Sans';
+font-size:14px;
+}
+.check{display:flex;align-items:center;gap:8px;font-size:13px;margin:10px 0;color:var(--sage);}
+.check input{width:auto;}
+.primary-btn{
+width:100%;
+padding:11px;
+background:var(--clay);
+color:var(--ink);
+border:none;
+border-radius:3px;
+font-weight:600;
+font-size:14px;
+cursor:pointer;
+margin-top:4px;
+}
+.hint{font-size:12px;color:var(--sage);margin-top:8px;line-height:1.5;}
+.err{color:#e0938a;font-size:12px;margin-top:6px;}
+.settings-toggle{
+background:none;border:none;color:var(--sage);font-size:12px;
+text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
+}
+.close-x{float:right;background:none;border:none;color:var(--sage);cursor:pointer;font-size:14px;}
+.price-line{font-size:12px;color:#5a5c50;margin-top:2px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="masthead">
+<div>
+<h1 id="clubNameHeader">Short Game Tee Sheet</h1>
+<div class="sub">Practice area reservations</div>
+</div>
+<button class="role-pill" id="roleBtn">Front Desk</button>
+</div>
+
+<div class="datebar">
+<button id="prevDay">‹</button>
+<div class="dateinfo">
+<div class="d" id="dateLabel">—</div>
+<div class="tag" id="dateTag"></div>
+</div>
+<button id="nextDay">›</button>
+</div>
+
+<div class="sheet" id="sheet"><div style="padding:20px;text-align:center;color:#5a5c50;">Loading…</div></div>
+
+<div class="panel" id="bookForm" style="display:none;">
+<span class="close-x" id="closeForm">✕ close</span>
+<h2 id="formTitle">New reservation</h2>
+<div class="row"><div style="flex:1;">
+<label>Name</label>
+<input id="fName" placeholder="Guest or member name">
+</div></div>
+<div class="row">
+<div style="flex:1;">
+<label>Phone (optional)</label>
+<input id="fPhone" placeholder="555-0100">
+</div>
+<div style="flex:1;">
+<label>Status</label>
+<select id="fStatus">
+<option value="member">Member</option>
+<option value="nonmember">Non-member</option>
+</select>
+</div>
+</div>
+<div class="check">
+<input type="checkbox" id="fInstructor">
+<label for="fInstructor" style="margin:0;color:var(--cream);">Instructor advance booking</label>
+</div>
+<div class="price-line" id="priceLine"></div>
+<div class="err" id="formErr"></div>
+<button class="primary-btn" id="saveBtn">Save reservation</button>
+</div>
+
+<button class="settings-toggle" id="settingsToggle" style="display:none;">Manager settings</button>
+
+<div class="panel" id="settingsPanel" style="display:none;">
+<span class="close-x" id="closeSettings">✕ close</span>
+<h2>Manager settings</h2>
+<div class="row">
+<div style="flex:1;"><label>Club / area name</label><input id="sClubName"></div>
+</div>
+<div class="row">
+<div style="flex:1;"><label>Member price ($)</label><input id="sMemberPrice" type="number" min="0"></div>
+<div style="flex:1;"><label>Non-member price ($)</label><input id="sNonMemberPrice" type="number" min="0"></div>
+</div>
+<div class="row">
+<div style="flex:1;"><label>Open hour (24h)</label><input id="sSlotStart" type="number" min="0" max="23"></div>
+<div style="flex:1;"><label>Close hour (24h)</label><input id="sSlotEnd" type="number" min="1" max="24"></div>
+</div>
+<div class="row">
+<div style="flex:1;"><label>Manager PIN</label><input id="sPin" maxlength="8"></div>
+</div>
+<button class="primary-btn" id="saveSettingsBtn">Save settings</button>
+<div class="hint">This PIN unlocks manager mode on any device. Front desk staff should only know the Front Desk view.</div>
+</div>
+
+<div class="hint" style="margin-top:24px;">
+Public bookings are same-day only. Reservations more than two weeks out require the instructor advance-booking option.
+</div>
+</div>
+
+<script>
+const DAY_MS = 86400000;
+let state = {
+date: new Date(),
+role: 'front', // 'front' | 'manager'
+settings: { clubName:'Short Game Tee Sheet', memberPrice:15, nonMemberPrice:30, slotStart:7, slotEnd:19, managerPin:'1234' },
+reservations: [],
+editingSlot: null
+};
+
+function fmtDate(d){ return d.toISOString().slice(0,10); }
+function keyFor(d){ return 'res:' + fmtDate(d); }
+function isToday(d){ return fmtDate(d) === fmtDate(new Date()); }
+function daysFromToday(d){
+const a = new Date(fmtDate(new Date())); const b = new Date(fmtDate(d));
+return Math.round((b-a)/DAY_MS);
+}
+function hourLabel(h){
+const ampm = h>=12 ? 'PM':'AM';
+let hh = h%12; if(hh===0) hh=12;
+return hh+':00 '+ampm;
+}
+
+async function loadSettings(){
+try{
+const r = await window.storage.get('settings', true);
+if(r && r.value){ state.settings = {...state.settings, ...JSON.parse(r.value)}; }
+}catch(e){ /* no settings saved yet, use defaults */ }
+applySettingsToForm();
+document.getElementById('clubNameHeader').textContent = state.settings.clubName;
+}
+
+async function saveSettings(){
+await window.storage.set('settings', JSON.stringify(state.settings), true);
+}
+
+async function loadReservations(){
+const sheet = document.getElementById('sheet');
+sheet.innerHTML = '<div style="padding:20px;text-align:center;color:#5a5c50;">Loading…</div>';
+try{
+const r = await window.storage.get(keyFor(state.date), true);
+state.reservations = (r && r.value) ? JSON.parse(r.value) : [];
+}catch(e){
+state.reservations = [];
+}
+renderSheet();
+}
+
+async function saveReservationsForDate(){
+await window.storage.set(keyFor(state.date), JSON.stringify(state.reservations), true);
+}
+
+function renderDateBar(){
+const opts = { weekday:'short', month:'short', day:'numeric' };
+document.getElementById('dateLabel').textContent = state.date.toLocaleDateString(undefined, opts);
+const diff = daysFromToday(state.date);
+let tag = diff===0 ? 'Today' : (diff===1 ? 'Tomorrow' : (diff>1? diff+' days out' : 'Past'));
+document.getElementById('dateTag').textContent = tag;
+}
+
+function renderSheet(){
+renderDateBar();
+const sheet = document.getElementById('sheet');
+sheet.innerHTML = '';
+const { slotStart, slotEnd } = state.settings;
+for(let h=slotStart; h<slotEnd; h++){
+const timeStr = String(h).padStart(2,'0')+':00';
+const res = state.reservations.find(r=>r.time===timeStr);
+const row = document.createElement('div');
+row.className = 'slot ' + (res ? (res.instructor ? 'instructor booked':'booked') : 'open');
+const time = document.createElement('div');
+time.className='time'; time.textContent = hourLabel(h);
+row.appendChild(time);
+
+const info = document.createElement('div');
+info.className='info';
+if(res){
+const nm = document.createElement('div'); nm.className='name'; nm.textContent = res.name;
+const meta = document.createElement('div'); meta.className='meta';
+meta.textContent = (res.status==='member'?'Member':'Non-member') + ' · $' + res.price + (res.instructor? ' · Instructor booking':'') + (res.phone? ' · '+res.phone:'');
+info.appendChild(nm); info.appendChild(meta);
+} else {
+const nm = document.createElement('div'); nm.className='name'; nm.textContent = 'Open';
+info.appendChild(nm);
+}
+row.appendChild(info);
+
+const btn = document.createElement('button');
+btn.className = 'act ' + (res? 'cancel-btn':'book-btn');
+btn.textContent = res ? 'Cancel' : 'Book';
+btn.onclick = () => res ? cancelSlot(timeStr) : openBookForm(timeStr);
+row.appendChild(btn);
+
+sheet.appendChild(row);
+}
+}
+
+function openBookForm(timeStr){
+state.editingSlot = timeStr;
+document.getElementById('formTitle').textContent = 'Book ' + hourLabel(parseInt(timeStr)) ;
+document.getElementById('fName').value='';
+document.getElementById('fPhone').value='';
+document.getElementById('fStatus').value='member';
+document.getElementById('fInstructor').checked = false;
+document.getElementById('formErr').textContent='';
+updatePriceLine();
+document.getElementById('bookForm').style.display='block';
+document.getElementById('bookForm').scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function updatePriceLine(){
+const status = document.getElementById('fStatus').value;
+const price = status==='member' ? state.settings.memberPrice : state.settings.nonMemberPrice;
+document.getElementById('priceLine').textContent = 'Price: $' + price;
+}
+
+async function cancelSlot(timeStr){
+if(state.role !== 'manager'){
+const res = state.reservations.find(r=>r.time===timeStr);
+if(res && res.instructor){
+alert('Only a manager can cancel an instructor advance booking.');
+return;
+}
+}
+if(!confirm('Cancel this reservation?')) return;
+state.reservations = state.reservations.filter(r=>r.time!==timeStr);
+await saveReservationsForDate();
+renderSheet();
+}
+
+async function saveReservation(){
+const name = document.getElementById('fName').value.trim();
+const phone = document.getElementById('fPhone').value.trim();
+const status = document.getElementById('fStatus').value;
+const instructor = document.getElementById('fInstructor').checked;
+const errEl = document.getElementById('formErr');
+errEl.textContent='';
+
+if(!name){ errEl.textContent = 'Enter a name.'; return; }
+
+const diff = daysFromToday(state.date);
+if(diff < 0){ errEl.textContent = 'Cannot book a past date.'; return; }
+if(diff > 0 && !instructor){
+errEl.textContent = 'Only same-day booking is allowed unless this is an instructor advance booking.';
+return;
+}
+if(diff > 14){ errEl.textContent = 'Reservations can only be made up to two weeks in advance.'; return; }
+
+const price = status==='member' ? state.settings.memberPrice : state.settings.nonMemberPrice;
+state.reservations = state.reservations.filter(r=>r.time!==state.editingSlot);
+state.reservations.push({ time: state.editingSlot, name, phone, status, instructor, price });
+await saveReservationsForDate();
+document.getElementById('bookForm').style.display='none';
+renderSheet();
+}
+
+function applySettingsToForm(){
+document.getElementById('sClubName').value = state.settings.clubName;
+document.getElementById('sMemberPrice').value = state.settings.memberPrice;
+document.getElementById('sNonMemberPrice').value = state.settings.nonMemberPrice;
+document.getElementById('sSlotStart').value = state.settings.slotStart;
+document.getElementById('sSlotEnd').value = state.settings.slotEnd;
+document.getElementById('sPin').value = state.settings.managerPin;
+}
+
+function setRole(role){
+state.role = role;
+const btn = document.getElementById('roleBtn');
+btn.textContent = role==='manager' ? 'Manager' : 'Front Desk';
+btn.className = 'role-pill' + (role==='manager' ? ' manager':'');
+document.getElementById('settingsToggle').style.display = role==='manager' ? 'block':'none';
+if(role!=='manager'){
+document.getElementById('settingsPanel').style.display='none';
+}
+}
+
+document.getElementById('roleBtn').onclick = () => {
+if(state.role==='manager'){ setRole('front'); return; }
+const pin = prompt('Enter manager PIN:');
+if(pin === state.settings.managerPin){ setRole('manager'); }
+else if(pin!==null){ alert('Incorrect PIN.'); }
+};
+
+document.getElementById('prevDay').onclick = () => { state.date = new Date(state.date.getTime()-DAY_MS); document.getElementById('bookForm').style.display='none'; loadReservations(); };
+document.getElementById('nextDay').onclick = () => { state.date = new Date(state.date.getTime()+DAY_MS); document.getElementById('bookForm').style.display='none'; loadReservations(); };
+
+document.getElementById('fStatus').onchange = updatePriceLine;
+document.getElementById('saveBtn').onclick = saveReservation;
+document.getElementById('closeForm').onclick = () => document.getElementById('bookForm').style.display='none';
+
+document.getElementById('settingsToggle').onclick = () => {
+const p = document.getElementById('settingsPanel');
+p.style.display = p.style.display==='none' ? 'block':'none';
+};
+document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').style.display='none';
+
+document.getElementById('saveSettingsBtn').onclick = async () => {
+state.settings.clubName = document.getElementById('sClubName').value.trim() || 'Short Game Tee Sheet';
+state.settings.memberPrice = parseFloat(document.getElementById('sMemberPrice').value) || 0;
+state.settings.nonMemberPrice = parseFloat(document.getElementById('sNonMemberPrice').value) || 0;
+state.settings.slotStart = parseInt(document.getElementById('sSlotStart').value);
+state.settings.slotEnd = parseInt(document.getElementById('sSlotEnd').value);
+state.settings.managerPin = document.getElementById('sPin').value.trim() || '1234';
+await saveSettings();
+document.getElementById('clubNameHeader').textContent = state.settings.clubName;
+document.getElementById('settingsPanel').style.display='none';
+renderSheet();
+};
+
+(async function init(){
+await loadSettings();
+await loadReservations();
+})();
+</script>
+</body>
+</html>
