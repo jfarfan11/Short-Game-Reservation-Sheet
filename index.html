@@ -65,6 +65,7 @@ display:flex;
 align-items:center;
 gap:10px;
 margin-bottom:16px;
+position:relative;
 }
 .datebar button{
 background:var(--green-panel);
@@ -75,9 +76,27 @@ width:34px;height:34px;
 border-radius:3px;
 cursor:pointer;
 }
-.datebar .dateinfo{flex:1;text-align:center;}
-.datebar .dateinfo .d{font-family:'Zilla Slab';font-size:18px;font-weight:600;}
+.datebar .dateinfo{flex:1;text-align:center;cursor:pointer;border-radius:4px;padding:4px 0;}
+.datebar .dateinfo:hover{background:rgba(243,238,223,0.06);}
+.datebar .dateinfo .d{font-family:'Zilla Slab';font-size:18px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
+.datebar .dateinfo .d .cal-icon{font-size:14px;opacity:0.7;}
 .datebar .dateinfo .tag{font-size:11px;color:var(--clay);margin-top:2px;text-transform:uppercase;letter-spacing:0.6px;}
+.datebar input[type="date"]{
+position:absolute;
+top:100%;
+left:50%;
+transform:translateX(-50%);
+margin-top:6px;
+z-index:20;
+background:var(--green-panel);
+color:var(--cream);
+border:1px solid var(--line);
+border-radius:4px;
+padding:8px 10px;
+font-family:'IBM Plex Sans';
+font-size:14px;
+color-scheme:dark;
+}
 
 .sheet{
 background:var(--cream);
@@ -177,11 +196,12 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 
 <div class="datebar">
 <button id="prevDay">‹</button>
-<div class="dateinfo">
-<div class="d" id="dateLabel">—</div>
+<div class="dateinfo" id="dateInfoBtn" title="Click to jump to a date">
+<div class="d"><span id="dateLabel">—</span><span class="cal-icon">📅</span></div>
 <div class="tag" id="dateTag"></div>
 </div>
 <button id="nextDay">›</button>
+<input type="date" id="dateInput" style="display:none;">
 </div>
 
 <div class="sheet" id="sheet"><div style="padding:20px;text-align:center;color:#5a5c50;">Loading…</div></div>
@@ -325,6 +345,7 @@ document.getElementById('dateLabel').textContent = state.date.toLocaleDateString
 const diff = daysFromToday(state.date);
 let tag = diff===0 ? 'Today' : (diff===1 ? 'Tomorrow' : (diff>1? diff+' days out' : 'Past'));
 document.getElementById('dateTag').textContent = tag;
+document.getElementById('dateInput').value = fmtDate(state.date);
 }
 
 function renderSheet(){
@@ -452,6 +473,22 @@ else if(pin!==null){ alert('Incorrect PIN.'); }
 
 document.getElementById('prevDay').onclick = () => { state.date = new Date(state.date.getTime()-DAY_MS); document.getElementById('bookForm').style.display='none'; loadReservations(); };
 document.getElementById('nextDay').onclick = () => { state.date = new Date(state.date.getTime()+DAY_MS); document.getElementById('bookForm').style.display='none'; loadReservations(); };
+
+const dateInputEl = document.getElementById('dateInput');
+document.getElementById('dateInfoBtn').onclick = () => {
+dateInputEl.style.display = 'block';
+if (dateInputEl.showPicker) { dateInputEl.showPicker(); }
+else { dateInputEl.focus(); dateInputEl.click(); }
+};
+dateInputEl.onchange = () => {
+if(!dateInputEl.value) return;
+const [y,m,dd] = dateInputEl.value.split('-').map(Number);
+state.date = new Date(y, m-1, dd);
+dateInputEl.style.display = 'none';
+document.getElementById('bookForm').style.display='none';
+loadReservations();
+};
+dateInputEl.onblur = () => { dateInputEl.style.display = 'none'; };
 
 document.getElementById('fStatus').onchange = updatePriceLine;
 document.getElementById('saveBtn').onclick = saveReservation;
