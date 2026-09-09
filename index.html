@@ -253,9 +253,10 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 </div>
 <div class="row">
 <div style="flex:1;"><label>Manager PIN</label><input id="sPin" maxlength="8"></div>
+<div style="flex:1;"><label>Admin PIN</label><input id="sAdminPin" maxlength="8"></div>
 </div>
 <button class="primary-btn" id="saveSettingsBtn">Save settings</button>
-<div class="hint">This PIN unlocks manager mode on any device. Front desk staff should only know the Front Desk view. It's also required to check "Instructor advance booking" on a reservation.</div>
+<div class="hint">Manager PIN unlocks manager mode on any device, and is required to check "Instructor advance booking." Admin PIN is reserved for an upcoming admin dashboard (bookings history, no-shows, etc.) — not active yet.</div>
 </div>
 
 <div class="hint" style="margin-top:24px;">
@@ -292,7 +293,7 @@ const DAY_MS = 86400000;
 let state = {
 date: new Date(),
 role: 'front', // 'front' | 'manager'
-settings: { clubName:'Short Game Tee Sheet', memberPrice:15, nonMemberPrice:30, slotStart:7, slotEnd:19, managerPin:'1234' },
+settings: { clubName:'Short Game Tee Sheet', memberPrice:15, nonMemberPrice:30, slotStart:7, slotEnd:19, managerPin:'1234', adminPin:'9999' },
 reservations: [],
 editingSlot: null
 };
@@ -451,6 +452,7 @@ document.getElementById('sNonMemberPrice').value = state.settings.nonMemberPrice
 document.getElementById('sSlotStart').value = state.settings.slotStart;
 document.getElementById('sSlotEnd').value = state.settings.slotEnd;
 document.getElementById('sPin').value = state.settings.managerPin;
+document.getElementById('sAdminPin').value = state.settings.adminPin;
 }
 
 function setRole(role){
@@ -517,6 +519,7 @@ state.settings.nonMemberPrice = parseFloat(document.getElementById('sNonMemberPr
 state.settings.slotStart = parseInt(document.getElementById('sSlotStart').value);
 state.settings.slotEnd = parseInt(document.getElementById('sSlotEnd').value);
 state.settings.managerPin = document.getElementById('sPin').value.trim() || '1234';
+state.settings.adminPin = document.getElementById('sAdminPin').value.trim() || '9999';
 await saveSettings();
 document.getElementById('clubNameHeader').textContent = state.settings.clubName;
 document.getElementById('settingsPanel').style.display='none';
