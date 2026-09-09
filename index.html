@@ -243,6 +243,7 @@ Public bookings are same-day only. Reservations more than two weeks out require 
 </div>
 </div>
 
+<script>
 const supabaseClient = supabase.createClient(
   'https://yaghvfmjmcjojxvzpmkr.supabase.co',
   'sb_publishable_qfuuj7g0uZl51nIIC5N3og_XanHphxF'
@@ -266,7 +267,7 @@ window.storage = {
     return { key, value };
   }
 };
-<script>
+
 const DAY_MS = 86400000;
 let state = {
 date: new Date(),
@@ -291,7 +292,7 @@ return hh+':00 '+ampm;
 
 async function loadSettings(){
 try{
-const r = await window.storage.get('settings', true);
+const r = await window.storage.get('settings');
 if(r && r.value){ state.settings = {...state.settings, ...JSON.parse(r.value)}; }
 }catch(e){ /* no settings saved yet, use defaults */ }
 applySettingsToForm();
@@ -299,14 +300,14 @@ document.getElementById('clubNameHeader').textContent = state.settings.clubName;
 }
 
 async function saveSettings(){
-await window.storage.set('settings', JSON.stringify(state.settings), true);
+await window.storage.set('settings', JSON.stringify(state.settings));
 }
 
 async function loadReservations(){
 const sheet = document.getElementById('sheet');
 sheet.innerHTML = '<div style="padding:20px;text-align:center;color:#5a5c50;">Loading…</div>';
 try{
-const r = await window.storage.get(keyFor(state.date), true);
+const r = await window.storage.get(keyFor(state.date));
 state.reservations = (r && r.value) ? JSON.parse(r.value) : [];
 }catch(e){
 state.reservations = [];
@@ -315,7 +316,7 @@ renderSheet();
 }
 
 async function saveReservationsForDate(){
-await window.storage.set(keyFor(state.date), JSON.stringify(state.reservations), true);
+await window.storage.set(keyFor(state.date), JSON.stringify(state.reservations));
 }
 
 function renderDateBar(){
