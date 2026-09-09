@@ -255,7 +255,7 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <div style="flex:1;"><label>Manager PIN</label><input id="sPin" maxlength="8"></div>
 </div>
 <button class="primary-btn" id="saveSettingsBtn">Save settings</button>
-<div class="hint">This PIN unlocks manager mode on any device. Front desk staff should only know the Front Desk view.</div>
+<div class="hint">This PIN unlocks manager mode on any device. Front desk staff should only know the Front Desk view. It's also required to check "Instructor advance booking" on a reservation.</div>
 </div>
 
 <div class="hint" style="margin-top:24px;">
@@ -493,6 +493,16 @@ dateInputEl.onblur = () => { dateInputEl.style.display = 'none'; };
 document.getElementById('fStatus').onchange = updatePriceLine;
 document.getElementById('saveBtn').onclick = saveReservation;
 document.getElementById('closeForm').onclick = () => document.getElementById('bookForm').style.display='none';
+
+document.getElementById('fInstructor').onchange = function(){
+if(this.checked){
+const pin = prompt('Enter manager PIN to enable instructor advance booking:');
+if(pin !== state.settings.managerPin){
+if(pin !== null){ alert('Incorrect PIN.'); }
+this.checked = false;
+}
+}
+};
 
 document.getElementById('settingsToggle').onclick = () => {
 const p = document.getElementById('settingsPanel');
