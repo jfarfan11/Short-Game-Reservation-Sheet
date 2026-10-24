@@ -2,20 +2,29 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Short Game Tee Sheet</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@400;600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+@font-face {
+  font-family: 'Galliard Roman';
+  src: local('Galliard Roman'), local('ITC Galliard Roman'),
+       url('./GalliardRoman.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
 
 :root{
---green-deep:#16302A;
---green-panel:#1E3F37;
---cream:#F3EEDF;
---clay:#B98546;
---clay-dark:#96692F;
---ink:#22241E;
---sage:#DCE6DA;
---red:#9C4238;
---line: rgba(243,238,223,0.14);
+  --green-deep:#2C572A;
+  --green-panel:#244823;
+  --cream:#F1EAF0;
+  --clay:#FAF7F8;
+  --clay-dark:#E6DDE5;
+  --ink:#292B27;
+  --sage:#F1EAF0;
+  --red:#9C4238;
+  --line:rgba(250,247,248,0.24);
+  --brand-font:'Galliard Roman', Georgia, 'Times New Roman', serif;
 }
 
 *{box-sizing:border-box;}
@@ -23,7 +32,7 @@ body{
 margin:0;
 background:var(--green-deep);
 color:var(--cream);
-font-family:'IBM Plex Sans', sans-serif;
+font-family:var(--brand-font);
 min-height:100vh;
 }
 .wrap{max-width:640px;margin:0 auto;padding:20px 16px 60px;}
@@ -32,12 +41,12 @@ min-height:100vh;
 display:flex;
 justify-content:space-between;
 align-items:baseline;
-border-bottom:2px solid var(--clay);
+border-bottom:2px solid var(--cream);
 padding-bottom:14px;
 margin-bottom:18px;
 }
 .masthead h1{
-font-family:'Zilla Slab',serif;
+font-family:var(--brand-font);
 font-weight:700;
 font-size:26px;
 margin:0;
@@ -49,7 +58,7 @@ color:var(--sage);
 margin-top:4px;
 }
 .role-pill{
-font-family:'IBM Plex Sans';
+font-family:var(--brand-font);
 font-size:12px;
 padding:5px 10px;
 border-radius:3px;
@@ -58,7 +67,7 @@ border:1px solid var(--line);
 cursor:pointer;
 color:var(--cream);
 }
-.role-pill.manager{background:var(--clay);color:var(--ink);border-color:var(--clay);font-weight:600;}
+.role-pill.manager{background:var(--cream);color:var(--ink);border-color:var(--cream);font-weight:600;}
 
 .datebar{
 display:flex;
@@ -78,9 +87,9 @@ cursor:pointer;
 }
 .datebar .dateinfo{flex:1;text-align:center;cursor:pointer;border-radius:4px;padding:4px 0;}
 .datebar .dateinfo:hover{background:rgba(243,238,223,0.06);}
-.datebar .dateinfo .d{font-family:'Zilla Slab';font-size:18px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
+.datebar .dateinfo .d{font-family:var(--brand-font);font-size:18px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
 .datebar .dateinfo .d .cal-icon{font-size:14px;opacity:0.7;}
-.datebar .dateinfo .tag{font-size:11px;color:var(--clay);margin-top:2px;text-transform:uppercase;letter-spacing:0.6px;}
+.datebar .dateinfo .tag{font-size:11px;color:var(--cream);margin-top:2px;text-transform:uppercase;letter-spacing:0.6px;}
 .datebar input[type="date"]{
 position:absolute;
 top:100%;
@@ -93,7 +102,7 @@ color:var(--cream);
 border:1px solid var(--line);
 border-radius:4px;
 padding:8px 10px;
-font-family:'IBM Plex Sans';
+font-family:var(--brand-font);
 font-size:14px;
 color-scheme:dark;
 }
@@ -114,7 +123,7 @@ gap:12px;
 }
 .slot:last-child{border-bottom:none;}
 .slot .time{
-font-family:'Zilla Slab';
+font-family:var(--brand-font);
 font-weight:600;
 font-size:15px;
 width:78px;
@@ -122,10 +131,10 @@ flex-shrink:0;
 }
 .slot .info{flex:1;min-width:0;}
 .slot .name{font-weight:600;font-size:14px;}
-.slot .meta{font-size:12px;color:#5a5c50;margin-top:1px;}
-.slot.open .name{color:#5a5c50;font-weight:400;font-style:italic;}
-.slot.booked{background:rgba(156,66,56,0.07);}
-.slot.instructor{background:rgba(185,133,70,0.1);}
+.slot .meta{font-size:12px;color:#50534C;margin-top:1px;}
+.slot.open .name{color:#50534C;font-weight:400;font-style:italic;}
+.slot.booked{background:var(--cream);}
+.slot.instructor{background:rgba(44,87,42,0.10);}
 .slot button.act{
 border:none;
 padding:7px 12px;
@@ -133,10 +142,10 @@ border-radius:3px;
 font-size:12px;
 font-weight:600;
 cursor:pointer;
-font-family:'IBM Plex Sans';
+font-family:var(--brand-font);
 }
-.slot .book-btn{background:var(--clay);color:#fff;}
-.slot .cancel-btn{background:transparent;color:var(--red);border:1px solid var(--red);}
+.slot .book-btn{background:var(--green-deep);color:var(--clay);}
+.slot .cancel-btn{background:transparent;color:var(--ink);border:1px solid rgba(41,43,39,0.45);}
 
 .panel{
 background:var(--green-panel);
@@ -145,7 +154,7 @@ border-radius:4px;
 padding:16px;
 margin-top:18px;
 }
-.panel h2{font-family:'Zilla Slab';font-size:16px;margin:0 0 12px;}
+.panel h2{font-family:var(--brand-font);font-size:16px;margin:0 0 12px;}
 .row{display:flex;gap:10px;margin-bottom:10px;}
 .row label{display:block;font-size:11px;color:var(--sage);margin-bottom:4px;text-transform:uppercase;letter-spacing:0.5px;}
 input,select{
@@ -155,7 +164,7 @@ border-radius:3px;
 border:1px solid var(--line);
 background:var(--green-deep);
 color:var(--cream);
-font-family:'IBM Plex Sans';
+font-family:var(--brand-font);
 font-size:14px;
 }
 .check{display:flex;align-items:center;gap:8px;font-size:13px;margin:10px 0;color:var(--sage);}
@@ -173,13 +182,13 @@ cursor:pointer;
 margin-top:4px;
 }
 .hint{font-size:12px;color:var(--sage);margin-top:8px;line-height:1.5;}
-.err{color:#e0938a;font-size:12px;margin-top:6px;}
+.err{color:#FFD4D0;font-size:12px;margin-top:6px;}
 .settings-toggle{
 background:none;border:none;color:var(--sage);font-size:12px;
 text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 }
 .close-x{float:right;background:none;border:none;color:var(--sage);cursor:pointer;font-size:14px;}
-.price-line{font-size:12px;color:#5a5c50;margin-top:2px;}
+.price-line{font-size:12px;color:var(--cream);margin-top:2px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -204,7 +213,7 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <input type="date" id="dateInput" style="display:none;">
 </div>
 
-<div class="sheet" id="sheet"><div style="padding:20px;text-align:center;color:#5a5c50;">Loading…</div></div>
+<div class="sheet" id="sheet"><div style="padding:20px;text-align:center;color:#50534C;">Loading…</div></div>
 
 <div class="panel" id="bookForm" style="display:none;">
 <span class="close-x" id="closeForm">✕ close</span>
@@ -326,7 +335,7 @@ await window.storage.set('settings', JSON.stringify(state.settings));
 
 async function loadReservations(){
 const sheet = document.getElementById('sheet');
-sheet.innerHTML = '<div style="padding:20px;text-align:center;color:#5a5c50;">Loading…</div>';
+sheet.innerHTML = '<div style="padding:20px;text-align:center;color:#50534C;">Loading…</div>';
 try{
 const r = await window.storage.get(keyFor(state.date));
 state.reservations = (r && r.value) ? JSON.parse(r.value) : [];
