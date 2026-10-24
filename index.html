@@ -92,20 +92,22 @@ cursor:pointer;
 .datebar .dateinfo .tag{font-size:11px;color:var(--cream);margin-top:2px;text-transform:uppercase;letter-spacing:0.6px;}
 /* Custom calendar, anchored to the date label instead of the browser popup */
 .datebar .dateinfo{position:relative;}
-.calendar-popover{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);width:min(320px,calc(100vw - 32px));padding:16px;background:var(--soft-white);color:var(--ink);border:1px solid rgba(41,43,39,.16);border-radius:9px;box-shadow:0 12px 35px rgba(0,0,0,.28);z-index:50;text-align:left;cursor:default;font-family:Arial,sans-serif;}
+ .calendar-popover{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);width:min(320px,calc(100vw - 32px));padding:16px;background:#203F20;color:#FAF7F8;border:1px solid #416444;border-radius:9px;box-shadow:0 14px 36px rgba(0,0,0,.35);z-index:50;text-align:left;cursor:default;font-family:Arial,sans-serif;opacity:1;}
 .calendar-popover[hidden]{display:none;}
 .calendar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
-.calendar-title{font-size:16px;font-weight:700;}
-.datebar .calendar-nav{width:34px;height:34px;background:transparent;color:var(--ink);border:1px solid rgba(41,43,39,.16);border-radius:5px;font-size:19px;}
+.calendar-title{font-size:16px;font-weight:700;color:#FAF7F8;}
+.datebar .calendar-nav{width:34px;height:34px;background:transparent;color:#FAF7F8;border:1px solid #416444;border-radius:5px;font-size:19px;}
+.datebar .calendar-nav:hover{background:#2C572A;}
 .calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;}
-.calendar-weekday{text-align:center;font-size:11px;font-weight:700;color:#64665f;padding:7px 0;}
-.datebar .calendar-day{width:100%;height:36px;padding:0;border:1px solid transparent;background:transparent;color:var(--ink);border-radius:5px;font-family:Arial,sans-serif;font-size:13px;}
-.datebar .calendar-day:hover{background:var(--cream);}
-.datebar .calendar-day.today{border-color:var(--green-deep);}
-.datebar .calendar-day.selected{background:var(--green-deep);color:var(--soft-white);font-weight:700;}
-.calendar-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid rgba(41,43,39,.12);}
-.datebar .calendar-today{width:auto;height:auto;padding:7px 12px;background:var(--green-deep);color:var(--soft-white);font-size:12px;border-radius:5px;}
-.calendar-help{font-size:11px;color:#64665f;}
+.calendar-weekday{text-align:center;font-size:11px;font-weight:700;color:#F1EAF0;padding:7px 0;}
+.datebar .calendar-day{width:100%;height:36px;padding:0;border:1px solid transparent;background:transparent;color:#FAF7F8;border-radius:5px;font-family:Arial,sans-serif;font-size:13px;}
+.datebar .calendar-day:hover{background:#2C572A;}
+.datebar .calendar-day.today{border-color:#F1EAF0;}
+.datebar .calendar-day.selected{background:#FAF7F8;color:#203F20;font-weight:700;border-color:#FAF7F8;}
+.datebar .calendar-day.selected:hover{background:#F1EAF0;}
+.calendar-footer{display:flex;justify-content:flex-end;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid #416444;}
+.datebar .calendar-today{width:auto;height:auto;padding:7px 12px;background:#FAF7F8;color:#203F20;font-size:12px;font-weight:700;border-radius:5px;border:1px solid #FAF7F8;}
+.datebar .calendar-today:hover{background:#F1EAF0;}
 @media(max-width:420px){.calendar-popover{width:min(300px,calc(100vw - 24px));}}
 
 .sheet{
@@ -190,6 +192,16 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 }
 .close-x{float:right;background:none;border:none;color:var(--sage);cursor:pointer;font-size:14px;}
 .price-line{font-size:12px;color:var(--cream);margin-top:2px;}
+
+/* Same-day booking notice: golf-ball inspired, responsive and fully opaque. */
+.booking-notice-backdrop[hidden]{display:none;}
+.booking-notice-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(12,27,13,.65);display:flex;align-items:center;justify-content:center;padding:20px;}
+.booking-notice-ball{width:min(340px,calc(100vw - 40px));aspect-ratio:1;border-radius:50%;background-color:#FAF7F8;background-image:radial-gradient(circle at 50% 50%,rgba(44,87,42,.09) 0 2px,transparent 3px);background-size:19px 19px;box-shadow:inset -14px -18px 28px rgba(32,63,32,.12),inset 8px 10px 22px rgba(255,255,255,.9),0 18px 50px rgba(0,0,0,.35);border:3px solid #F1EAF0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:42px 37px;color:#292B27;gap:17px;}
+.booking-notice-message{font-family:var(--brand-font),Georgia,serif;font-size:clamp(16px,4.5vw,20px);line-height:1.35;font-weight:600;margin:0;}
+.booking-notice-close{background:#2C572A;color:#FAF7F8;border:0;border-radius:20px;padding:10px 26px;cursor:pointer;font-family:inherit;font-size:15px;font-weight:700;min-height:42px;}
+.booking-notice-close:hover{background:#203F20;}
+.booking-notice-close:focus-visible{outline:3px solid #292B27;outline-offset:3px;}
+@media(max-width:370px){.booking-notice-ball{padding:34px 29px;gap:12px;}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -212,7 +224,7 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <div class="calendar-popover" id="calendarPopover" hidden role="dialog" aria-label="Choose reservation date">
   <div class="calendar-head"><button type="button" class="calendar-nav" id="calPrev" aria-label="Previous month">‹</button><span class="calendar-title" id="calMonth"></span><button type="button" class="calendar-nav" id="calNext" aria-label="Next month">›</button></div>
   <div class="calendar-grid" id="calendarGrid"></div>
-  <div class="calendar-footer"><span class="calendar-help">Select a date</span><button type="button" class="calendar-today" id="calToday">Today</button></div>
+  <div class="calendar-footer"><button type="button" class="calendar-today" id="calToday">Today</button></div>
 </div>
 </div>
 <button id="nextDay">›</button>
@@ -274,9 +286,14 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <div class="hint">Manager PIN unlocks manager mode on any device, and is required to check "Instructor advance booking." Admin PIN is reserved for an upcoming admin dashboard (bookings history, no-shows, etc.) — not active yet.</div>
 </div>
 
-<div class="hint" style="margin-top:24px;">
-Public bookings are same-day only. Reservations more than two weeks out require the instructor advance-booking option.
+
 </div>
+
+<div class="booking-notice-backdrop" id="bookingNotice" hidden>
+  <div class="booking-notice-ball" role="alertdialog" aria-modal="true" aria-labelledby="bookingNoticeMessage">
+    <p class="booking-notice-message" id="bookingNoticeMessage">Reservations are for same-day only. Please contact a manager for further help.</p>
+    <button type="button" class="booking-notice-close" id="bookingNoticeClose">OK</button>
+  </div>
 </div>
 
 <script>
@@ -402,6 +419,11 @@ sheet.appendChild(row);
 }
 
 function openBookForm(timeStr){
+// Front desk staff can view other days, but booking them requires a manager.
+if(state.role === 'front' && !sameCalendarDay(state.date, new Date())){
+  showBookingNotice();
+  return;
+}
 state.editingSlot = timeStr;
 document.getElementById('formTitle').textContent = 'Book ' + hourLabel(parseInt(timeStr)) ;
 document.getElementById('fName').value='';
@@ -531,6 +553,19 @@ document.getElementById('calNext').onclick=(e)=>{e.stopPropagation();calendarMon
 document.getElementById('calToday').onclick=(e)=>{e.stopPropagation();selectCalendarDate(new Date());};
 document.addEventListener('click',(e)=>{if(!e.target.closest('#dateInfoBtn'))calendarPopover.hidden=true;});
 document.addEventListener('keydown',(e)=>{if(e.key==='Escape')calendarPopover.hidden=true;});
+
+const bookingNotice = document.getElementById('bookingNotice');
+const bookingNoticeClose = document.getElementById('bookingNoticeClose');
+function showBookingNotice(){
+  bookingNotice.hidden = false;
+  bookingNoticeClose.focus();
+}
+function closeBookingNotice(){
+  bookingNotice.hidden = true;
+}
+bookingNoticeClose.onclick = closeBookingNotice;
+bookingNotice.addEventListener('click', (e)=>{if(e.target===bookingNotice)closeBookingNotice();});
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape' && !bookingNotice.hidden)closeBookingNotice();});
 
 document.getElementById('fStatus').onchange = updatePriceLine;
 document.getElementById('saveBtn').onclick = saveReservation;
