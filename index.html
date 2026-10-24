@@ -90,22 +90,23 @@ cursor:pointer;
 .datebar .dateinfo .d{font-family:var(--brand-font);font-size:18px;font-weight:600;display:inline-flex;align-items:center;gap:6px;}
 .datebar .dateinfo .d .cal-icon{font-size:14px;opacity:0.7;}
 .datebar .dateinfo .tag{font-size:11px;color:var(--cream);margin-top:2px;text-transform:uppercase;letter-spacing:0.6px;}
-.datebar input[type="date"]{
-position:absolute;
-top:100%;
-left:50%;
-transform:translateX(-50%);
-margin-top:6px;
-z-index:20;
-background:var(--green-panel);
-color:var(--cream);
-border:1px solid var(--line);
-border-radius:4px;
-padding:8px 10px;
-font-family:var(--brand-font);
-font-size:14px;
-color-scheme:dark;
-}
+/* Custom calendar, anchored to the date label instead of the browser popup */
+.datebar .dateinfo{position:relative;}
+.calendar-popover{position:absolute;top:calc(100% + 12px);left:50%;transform:translateX(-50%);width:min(320px,calc(100vw - 32px));padding:16px;background:var(--soft-white);color:var(--ink);border:1px solid rgba(41,43,39,.16);border-radius:9px;box-shadow:0 12px 35px rgba(0,0,0,.28);z-index:50;text-align:left;cursor:default;font-family:Arial,sans-serif;}
+.calendar-popover[hidden]{display:none;}
+.calendar-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;}
+.calendar-title{font-size:16px;font-weight:700;}
+.datebar .calendar-nav{width:34px;height:34px;background:transparent;color:var(--ink);border:1px solid rgba(41,43,39,.16);border-radius:5px;font-size:19px;}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;}
+.calendar-weekday{text-align:center;font-size:11px;font-weight:700;color:#64665f;padding:7px 0;}
+.datebar .calendar-day{width:100%;height:36px;padding:0;border:1px solid transparent;background:transparent;color:var(--ink);border-radius:5px;font-family:Arial,sans-serif;font-size:13px;}
+.datebar .calendar-day:hover{background:var(--cream);}
+.datebar .calendar-day.today{border-color:var(--green-deep);}
+.datebar .calendar-day.selected{background:var(--green-deep);color:var(--soft-white);font-weight:700;}
+.calendar-footer{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:10px;border-top:1px solid rgba(41,43,39,.12);}
+.datebar .calendar-today{width:auto;height:auto;padding:7px 12px;background:var(--green-deep);color:var(--soft-white);font-size:12px;border-radius:5px;}
+.calendar-help{font-size:11px;color:#64665f;}
+@media(max-width:420px){.calendar-popover{width:min(300px,calc(100vw - 24px));}}
 
 .sheet{
 background:var(--cream);
@@ -208,9 +209,14 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <div class="dateinfo" id="dateInfoBtn" title="Click to jump to a date">
 <div class="d"><span id="dateLabel">—</span><span class="cal-icon">📅</span></div>
 <div class="tag" id="dateTag"></div>
+<div class="calendar-popover" id="calendarPopover" hidden role="dialog" aria-label="Choose reservation date">
+  <div class="calendar-head"><button type="button" class="calendar-nav" id="calPrev" aria-label="Previous month">‹</button><span class="calendar-title" id="calMonth"></span><button type="button" class="calendar-nav" id="calNext" aria-label="Next month">›</button></div>
+  <div class="calendar-grid" id="calendarGrid"></div>
+  <div class="calendar-footer"><span class="calendar-help">Select a date</span><button type="button" class="calendar-today" id="calToday">Today</button></div>
+</div>
 </div>
 <button id="nextDay">›</button>
-<input type="date" id="dateInput" style="display:none;">
+
 </div>
 
 <div class="sheet" id="sheet"><div style="padding:20px;text-align:center;color:#50534C;">Loading…</div></div>
@@ -355,7 +361,7 @@ document.getElementById('dateLabel').textContent = state.date.toLocaleDateString
 const diff = daysFromToday(state.date);
 let tag = diff===0 ? 'Today' : (diff===1 ? 'Tomorrow' : (diff>1? diff+' days out' : 'Past'));
 document.getElementById('dateTag').textContent = tag;
-document.getElementById('dateInput').value = fmtDate(state.date);
+
 }
 
 function renderSheet(){
@@ -482,24 +488,49 @@ if(pin === state.settings.managerPin){ setRole('manager'); }
 else if(pin!==null){ alert('Incorrect PIN.'); }
 };
 
-document.getElementById('prevDay').onclick = () => { state.date = new Date(state.date.getTime()-DAY_MS); document.getElementById('bookForm').style.display='none'; loadReservations(); };
-document.getElementById('nextDay').onclick = () => { state.date = new Date(state.date.getTime()+DAY_MS); document.getElementById('bookForm').style.display='none'; loadReservations(); };
+document.getElementById('prevDay').onclick = () => { state.date = new Date(state.date.getTime()-DAY_MS); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
+document.getElementById('nextDay').onclick = () => { state.date = new Date(state.date.getTime()+DAY_MS); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
 
-const dateInputEl = document.getElementById('dateInput');
-document.getElementById('dateInfoBtn').onclick = () => {
-dateInputEl.style.display = 'block';
-if (dateInputEl.showPicker) { dateInputEl.showPicker(); }
-else { dateInputEl.focus(); dateInputEl.click(); }
+const calendarPopover = document.getElementById('calendarPopover');
+let calendarMonth = new Date(state.date.getFullYear(), state.date.getMonth(), 1);
+function sameCalendarDay(a,b){return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();}
+function selectCalendarDate(d){
+  state.date = new Date(d.getFullYear(),d.getMonth(),d.getDate());
+  calendarPopover.hidden = true;
+  document.getElementById('bookForm').style.display='none';
+  loadReservations();
+}
+function drawCalendar(){
+  document.getElementById('calMonth').textContent = calendarMonth.toLocaleDateString(undefined,{month:'long',year:'numeric'});
+  const grid = document.getElementById('calendarGrid');
+  grid.replaceChildren();
+  ['Su','Mo','Tu','We','Th','Fr','Sa'].forEach(label=>{
+    const cell=document.createElement('span');cell.className='calendar-weekday';cell.textContent=label;grid.appendChild(cell);
+  });
+  const year=calendarMonth.getFullYear(), month=calendarMonth.getMonth();
+  const offset=new Date(year,month,1).getDay();
+  const days=new Date(year,month+1,0).getDate();
+  for(let i=0;i<offset;i++){grid.appendChild(document.createElement('span'));}
+  for(let day=1;day<=days;day++){
+    const d=new Date(year,month,day);
+    const btn=document.createElement('button');btn.type='button';btn.className='calendar-day';btn.textContent=day;
+    if(sameCalendarDay(d,new Date()))btn.classList.add('today');
+    if(sameCalendarDay(d,state.date))btn.classList.add('selected');
+    btn.setAttribute('aria-label',d.toLocaleDateString(undefined,{weekday:'long',month:'long',day:'numeric',year:'numeric'}));
+    btn.onclick=(e)=>{e.stopPropagation();selectCalendarDate(d);};
+    grid.appendChild(btn);
+  }
+}
+document.getElementById('dateInfoBtn').onclick = (e) => {
+  if(e.target.closest('.calendar-popover'))return;
+  calendarPopover.hidden=!calendarPopover.hidden;
+  if(!calendarPopover.hidden){calendarMonth=new Date(state.date.getFullYear(),state.date.getMonth(),1);drawCalendar();}
 };
-dateInputEl.onchange = () => {
-if(!dateInputEl.value) return;
-const [y,m,dd] = dateInputEl.value.split('-').map(Number);
-state.date = new Date(y, m-1, dd);
-dateInputEl.style.display = 'none';
-document.getElementById('bookForm').style.display='none';
-loadReservations();
-};
-dateInputEl.onblur = () => { dateInputEl.style.display = 'none'; };
+document.getElementById('calPrev').onclick=(e)=>{e.stopPropagation();calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()-1,1);drawCalendar();};
+document.getElementById('calNext').onclick=(e)=>{e.stopPropagation();calendarMonth=new Date(calendarMonth.getFullYear(),calendarMonth.getMonth()+1,1);drawCalendar();};
+document.getElementById('calToday').onclick=(e)=>{e.stopPropagation();selectCalendarDate(new Date());};
+document.addEventListener('click',(e)=>{if(!e.target.closest('#dateInfoBtn'))calendarPopover.hidden=true;});
+document.addEventListener('keydown',(e)=>{if(e.key==='Escape')calendarPopover.hidden=true;});
 
 document.getElementById('fStatus').onchange = updatePriceLine;
 document.getElementById('saveBtn').onclick = saveReservation;
