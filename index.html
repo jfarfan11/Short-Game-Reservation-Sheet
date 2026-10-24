@@ -466,6 +466,28 @@ function renderSunbar(){
   document.getElementById('sunsetTime').textContent=set?fmt.format(set):'—';
 }
 
+// Convert a solar event to clock minutes in the golf course's Pacific time zone.
+function courseClockMinutes(instant){
+  if(!instant) return null;
+  const parts=new Intl.DateTimeFormat('en-US',{
+    hour:'2-digit',minute:'2-digit',hourCycle:'h23',timeZone:SUN_ZONE
+  }).formatToParts(instant);
+  const hour=Number(parts.find(p=>p.type==='hour').value);
+  const minute=Number(parts.find(p=>p.type==='minute').value);
+  return hour*60+minute;
+}
+
+// An hourly slot can start up to 20 minutes before sunrise and must
+// have at least 20 minutes of daylight remaining before sunset.
+function isDaylightSlot(hour,date){
+  const sunrise=courseClockMinutes(sunTimeForDate(date,true));
+  const sunset=courseClockMinutes(sunTimeForDate(date,false));
+  // If a solar calculation fails, keep configured hours rather than hide everything.
+  if(sunrise===null || sunset===null) return true;
+  const start=hour*60;
+  return start >= sunrise-20 && start <= sunset-20;
+}
+
 function renderDateBar(){
 renderSunbar();
 const opts = { weekday:'short', month:'short', day:'numeric' };
@@ -482,6 +504,7 @@ const sheet = document.getElementById('sheet');
 sheet.innerHTML = '';
 const { slotStart, slotEnd } = state.settings;
 for(let h=slotStart; h<slotEnd; h++){
+if(!isDaylightSlot(h,state.date)) continue;
 const timeStr = String(h).padStart(2,'0')+':00';
 const res = state.reservations.find(r=>r.time===timeStr);
 const row = document.createElement('div');
