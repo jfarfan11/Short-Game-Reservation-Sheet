@@ -91,16 +91,15 @@ cursor:pointer;
 .datebar .dateinfo .d .cal-icon{font-size:14px;opacity:0.7;}
 .datebar .dateinfo .tag{font-size:11px;color:var(--cream);margin-top:2px;text-transform:uppercase;letter-spacing:0.6px;}
 
-/* Compact sunrise/sunset ribbon above the date controls */
-.sunbar{display:flex;align-items:center;justify-content:center;gap:24px;margin:0 0 12px;padding:9px 12px;background:#203F20;border:1px solid #416444;border-radius:6px;color:#FAF7F8;font-family:Arial,sans-serif;}
-.sunitem{display:flex;align-items:center;gap:8px;white-space:nowrap;}
-.sunitem svg{width:21px;height:21px;flex-shrink:0;stroke:#F1EAF0;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;}
-.sunlabel{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:#F1EAF0;}
-.suntime{font-size:13px;font-weight:700;color:#FAF7F8;}
-.sunseparator{height:22px;width:1px;background:#416444;}
+/* Sunrise and sunset, centered ivory line icons */
+.sunbar{display:flex;align-items:center;justify-content:center;gap:56px;margin:0 0 12px;padding:13px 12px;background:#203F20;border:1px solid #416444;border-radius:6px;color:#FAF7F8;font-family:Arial,sans-serif;}
+.sunitem{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;min-width:105px;text-align:center;}
+.sunitem svg{width:66px;height:59px;flex-shrink:0;stroke:#F1EAF0;fill:none;stroke-width:3.5;stroke-linecap:round;stroke-linejoin:round;}
+.sunlabel{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:#F1EAF0;}
+.suntime{font-size:15px;font-weight:700;color:#FAF7F8;}
 .datebar .day-arrow{display:flex;align-items:center;justify-content:center;}
 .datebar .day-arrow svg{width:20px;height:20px;stroke:currentColor;stroke-width:3.3;fill:none;stroke-linecap:round;stroke-linejoin:round;}
-@media(max-width:390px){.sunbar{gap:12px;padding:9px 6px}.sunitem{gap:5px}.sunlabel{font-size:10px}.suntime{font-size:12px}}
+@media(max-width:390px){.sunbar{gap:20px;padding:10px 6px}.sunitem{min-width:100px}.suntime{font-size:14px}}
 
 /* Custom calendar, anchored to the date label instead of the browser popup */
 .datebar .dateinfo{position:relative;}
@@ -260,11 +259,11 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 
 <div class="sunbar" aria-label="Sunrise and sunset for selected date">
   <div class="sunitem">
-    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 24h24M8 20a8 8 0 0 1 16 0M16 3v5M5.5 9.5l3.6 3.6M26.5 9.5l-3.6 3.6M16 27V13m-5 5 5-5 5 5"/></svg>
+    <svg viewBox="0 0 100 90" aria-hidden="true"><path d="M13 65 H87"/><path d="M27 65 A23 23 0 0 1 73 65"/><path d="M50 35 V29 M34 41 L30 36 M66 41 L70 36 M23 53 L17 51 M77 53 L83 51"/><path d="M32 76 H68"/></svg>
     <span class="sunlabel">Sunrise</span><span class="suntime" id="sunriseTime">--:--</span>
   </div>
   <div class="sunitem">
-    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 24h24M8 20a8 8 0 0 1 16 0M16 3v5M5.5 9.5l3.6 3.6M26.5 9.5l-3.6 3.6M16 13v14m-5-5 5 5 5-5"/></svg>
+    <svg viewBox="0 0 100 90" aria-hidden="true"><path d="M70 18 A33 33 0 1 0 82 65 A29 29 0 0 1 70 18 Z"/></svg>
     <span class="sunlabel">Sunset</span><span class="suntime" id="sunsetTime">--:--</span>
   </div>
 </div>
