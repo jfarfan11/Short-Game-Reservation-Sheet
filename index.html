@@ -193,15 +193,18 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 .close-x{float:right;background:none;border:none;color:var(--sage);cursor:pointer;font-size:14px;}
 .price-line{font-size:12px;color:var(--cream);margin-top:2px;}
 
-/* Same-day booking notice: golf-ball inspired, responsive and fully opaque. */
+/* Branded same-day notice: opaque circle, crisp vector mark, blurred page. */
 .booking-notice-backdrop[hidden]{display:none;}
-.booking-notice-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(12,27,13,.65);display:flex;align-items:center;justify-content:center;padding:20px;}
-.booking-notice-ball{width:min(340px,calc(100vw - 40px));aspect-ratio:1;border-radius:50%;background-color:#FAF7F8;background-image:radial-gradient(circle at 50% 50%,rgba(44,87,42,.09) 0 2px,transparent 3px);background-size:19px 19px;box-shadow:inset -14px -18px 28px rgba(32,63,32,.12),inset 8px 10px 22px rgba(255,255,255,.9),0 18px 50px rgba(0,0,0,.35);border:3px solid #F1EAF0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:42px 37px;color:#292B27;gap:17px;}
-.booking-notice-message{font-family:var(--brand-font),Georgia,serif;font-size:clamp(16px,4.5vw,20px);line-height:1.35;font-weight:600;margin:0;}
-.booking-notice-close{background:#2C572A;color:#FAF7F8;border:0;border-radius:20px;padding:10px 26px;cursor:pointer;font-family:inherit;font-size:15px;font-weight:700;min-height:42px;}
-.booking-notice-close:hover{background:#203F20;}
-.booking-notice-close:focus-visible{outline:3px solid #292B27;outline-offset:3px;}
-@media(max-width:370px){.booking-notice-ball{padding:34px 29px;gap:12px;}}
+.booking-notice-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(12,30,13,.55);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px;}
+.booking-notice-ball{position:relative;width:min(390px,calc(100vw - 32px));aspect-ratio:1;border-radius:50%;background:#2C572A;border:4px solid #FAF7F8;box-shadow:0 20px 65px rgba(0,0,0,.42);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px 25px;color:#FAF7F8;}
+.booking-notice-art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
+.booking-notice-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:15px;width:100%;}
+.booking-notice-logo{width:74px;height:74px;display:block;flex-shrink:0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12));}
+.booking-notice-message{font-family:var(--brand-font),Georgia,serif;font-size:clamp(15px,4vw,19px);line-height:1.38;font-weight:600;margin:0;color:#FAF7F8;text-shadow:0 1px 3px rgba(0,0,0,.3);}
+.booking-notice-close{background:#FAF7F8;color:#203F20;border:0;border-radius:22px;padding:10px 31px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;min-height:44px;}
+.booking-notice-close:hover{background:#F1EAF0;}
+.booking-notice-close:focus-visible{outline:3px solid #FAF7F8;outline-offset:4px;}
+@media(max-width:390px){.booking-notice-content{gap:11px}.booking-notice-logo{width:62px;height:62px}.booking-notice-ball{padding:14px 20px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -291,8 +294,24 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 
 <div class="booking-notice-backdrop" id="bookingNotice" hidden>
   <div class="booking-notice-ball" role="alertdialog" aria-modal="true" aria-labelledby="bookingNoticeMessage">
-    <p class="booking-notice-message" id="bookingNoticeMessage">Reservations are for same-day only. Please contact a manager for further help.</p>
-    <button type="button" class="booking-notice-close" id="bookingNoticeClose">OK</button>
+    <svg class="booking-notice-art" viewBox="0 0 400 400" aria-hidden="true" preserveAspectRatio="xMidYMid slice">
+      <path d="M-15 99 Q120 122 270 66 T418 47" fill="none" stroke="#FAF7F8" stroke-width="11" opacity=".14"/>
+      <path d="M-15 296 Q160 257 415 330" fill="none" stroke="#FAF7F8" stroke-width="11" opacity=".14"/>
+    </svg>
+    <div class="booking-notice-content">
+      <svg class="booking-notice-logo" viewBox="0 0 200 200" role="img" aria-label="Golf course circular flag logo">
+        <defs><clipPath id="noticeLogoClip"><circle cx="100" cy="100" r="96"/></clipPath></defs>
+        <circle cx="100" cy="100" r="96" fill="#3B9E46"/>
+        <g clip-path="url(#noticeLogoClip)" fill="none" stroke="#FAF7F8" stroke-width="10" stroke-linecap="round">
+          <path d="M-8 35 Q65 52 146 20 T212 16"/>
+          <path d="M-8 79 Q80 72 139 93 T208 105"/>
+          <path d="M-8 151 Q65 135 132 158 T208 169"/>
+        </g>
+        <path d="M130 93 L152 84 L152 145" fill="none" stroke="#FAF7F8" stroke-width="9" stroke-linejoin="round" stroke-linecap="round"/>
+      </svg>
+      <p class="booking-notice-message" id="bookingNoticeMessage">Reservations are for<br>same-day booking only.<br>Contact a manager<br>for further help.</p>
+      <button type="button" class="booking-notice-close" id="bookingNoticeClose">OK</button>
+    </div>
   </div>
 </div>
 
