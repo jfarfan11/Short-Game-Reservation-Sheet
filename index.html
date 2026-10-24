@@ -355,11 +355,18 @@ reservations: [],
 editingSlot: null
 };
 
-function fmtDate(d){ return d.toISOString().slice(0,10); }
+function fmtDate(d){
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 function keyFor(d){ return 'res:' + fmtDate(d); }
 function isToday(d){ return fmtDate(d) === fmtDate(new Date()); }
 function daysFromToday(d){
-const a = new Date(fmtDate(new Date())); const b = new Date(fmtDate(d));
+const today = new Date();
+const a = Date.UTC(today.getFullYear(), today.getMonth(), today.getDate());
+const b = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
 return Math.round((b-a)/DAY_MS);
 }
 function hourLabel(h){
@@ -568,8 +575,8 @@ if(pin === state.settings.managerPin){ setRole('manager'); }
 else if(pin!==null){ alert('Incorrect PIN.'); }
 };
 
-document.getElementById('prevDay').onclick = () => { state.date = new Date(state.date.getTime()-DAY_MS); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
-document.getElementById('nextDay').onclick = () => { state.date = new Date(state.date.getTime()+DAY_MS); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
+document.getElementById('prevDay').onclick = () => { state.date = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate()-1); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
+document.getElementById('nextDay').onclick = () => { state.date = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate()+1); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
 
 const calendarPopover = document.getElementById('calendarPopover');
 let calendarMonth = new Date(state.date.getFullYear(), state.date.getMonth(), 1);
