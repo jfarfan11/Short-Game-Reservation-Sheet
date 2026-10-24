@@ -244,6 +244,17 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 .sunlabel{font-size:11px;letter-spacing:1.1px;}
 .suntime{font-size:clamp(16px,3.5vw,20px);line-height:1.2;}
 @media(max-width:390px){.sunbar{gap:0;padding:0}.sunitem{gap:5px;padding:12px 4px}.sunlabel{font-size:10px}.suntime{font-size:16px}}
+
+/* In-page dialogs: no browser alert/prompt/confirm suppression on mobile */
+.custom-dialog-backdrop{position:fixed;inset:0;z-index:9999;background:rgba(16,28,17,.72);display:flex;align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(5px)}
+.custom-dialog-backdrop[hidden]{display:none!important}
+.custom-dialog{width:min(100%,370px);background:#203F20;color:#FAF7F8;border:1px solid rgba(241,234,240,.35);border-radius:18px;padding:27px 24px 22px;text-align:center;box-shadow:0 16px 48px rgba(0,0,0,.35);font-family:Georgia,serif}
+.custom-dialog-message{font-size:20px;line-height:1.4;margin:0 0 19px;white-space:pre-line}
+.custom-dialog-input{width:100%;box-sizing:border-box;font-size:20px;text-align:center;letter-spacing:2px;padding:12px;border:1px solid #D7D9D2;border-radius:8px;background:#FAF7F8;color:#292B27;margin-bottom:16px}
+.custom-dialog-actions{display:flex;gap:10px;justify-content:center}
+.custom-dialog-actions button{min-width:105px;border-radius:8px;padding:11px 16px;font:inherit;font-size:16px;cursor:pointer;border:1px solid #F1EAF0}
+.custom-dialog-primary{background:#F1EAF0;color:#203F20}
+.custom-dialog-secondary{background:transparent;color:#F1EAF0}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -350,6 +361,18 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
   </div>
 </div>
 
+<div class="custom-dialog-backdrop" id="customDialog" hidden>
+  <div class="custom-dialog" role="dialog" aria-modal="true" aria-labelledby="customDialogMessage">
+    <p class="custom-dialog-message" id="customDialogMessage"></p>
+    <form id="customDialogForm">
+      <input class="custom-dialog-input" id="customDialogInput" type="password" inputmode="numeric" autocomplete="off" aria-label="PIN" hidden>
+      <div class="custom-dialog-actions">
+        <button type="button" class="custom-dialog-secondary" id="customDialogCancel">Cancel</button>
+        <button type="submit" class="custom-dialog-primary" id="customDialogOK">OK</button>
+      </div>
+    </form>
+  </div>
+</div>
 <script>
 const supabaseClient = supabase.createClient(
   'https://yaghvfmjmcjojxvzpmkr.supabase.co',
@@ -432,6 +455,43 @@ renderSheet();
 async function saveReservationsForDate(){
 await window.storage.set(keyFor(state.date), JSON.stringify(state.reservations));
 }
+
+
+// Native dialogs can be permanently suppressed in mobile Chrome; use an in-page modal.
+const customDialog=document.getElementById('customDialog');
+let customDialogResolve=null;
+let customDialogPriorFocus=null;
+function siteDialog(message,kind='alert'){
+  return new Promise(resolve=>{
+    customDialogPriorFocus=document.activeElement;
+    customDialogResolve=resolve;
+    document.getElementById('customDialogMessage').textContent=message;
+    const field=document.getElementById('customDialogInput');
+    field.hidden=kind!=='prompt';field.value='';
+    document.getElementById('customDialogCancel').hidden=kind==='alert';
+    customDialog.hidden=false;
+    if(kind==='prompt')field.focus();else document.getElementById('customDialogOK').focus();
+  });
+}
+function finishSiteDialog(value){
+  if(!customDialogResolve)return;
+  const done=customDialogResolve;customDialogResolve=null;
+  customDialog.hidden=true;
+  if(customDialogPriorFocus && customDialogPriorFocus.isConnected)customDialogPriorFocus.focus();
+  done(value);
+}
+document.getElementById('customDialogForm').addEventListener('submit',e=>{
+  e.preventDefault();
+  const field=document.getElementById('customDialogInput');
+  finishSiteDialog(field.hidden?true:field.value);
+});
+document.getElementById('customDialogCancel').onclick=()=>finishSiteDialog(null);
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!customDialog.hidden){e.preventDefault();finishSiteDialog(null);}
+});
+const siteAlert=message=>siteDialog(message,'alert');
+const sitePrompt=message=>siteDialog(message,'prompt');
+const siteConfirm=async message=>(await siteDialog(message,'confirm'))===true;
 
 // Sunrise and sunset at Green River Golf Club, Corona, California.
 // SunCalc solar formulas, with Pacific time including daylight saving time.
@@ -563,11 +623,11 @@ async function cancelSlot(timeStr){
 if(state.role !== 'manager'){
 const res = state.reservations.find(r=>r.time===timeStr);
 if(res && res.instructor){
-alert('Only a manager can cancel an instructor advance booking.');
+await siteAlert('Only a manager can cancel an instructor advance booking.');
 return;
 }
 }
-if(!confirm('Cancel this reservation?')) return;
+if(!await siteConfirm('Cancel this reservation?')) return;
 state.reservations = state.reservations.filter(r=>r.time!==timeStr);
 await saveReservationsForDate();
 renderSheet();
@@ -620,11 +680,11 @@ document.getElementById('settingsPanel').style.display='none';
 }
 }
 
-document.getElementById('roleBtn').onclick = () => {
+document.getElementById('roleBtn').onclick = async () => {
 if(state.role==='manager'){ setRole('front'); return; }
-const pin = prompt('Enter manager PIN:');
+const pin = await sitePrompt('Enter manager PIN:');
 if(pin === state.settings.managerPin){ setRole('manager'); }
-else if(pin!==null){ alert('Incorrect PIN.'); }
+else if(pin!==null){ await siteAlert('Incorrect PIN.'); }
 };
 
 document.getElementById('prevDay').onclick = () => { state.date = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate()-1); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
@@ -688,37 +748,37 @@ document.getElementById('fStatus').onchange = updatePriceLine;
 document.getElementById('saveBtn').onclick = saveReservation;
 document.getElementById('closeForm').onclick = () => document.getElementById('bookForm').style.display='none';
 
-document.getElementById('fInstructor').onchange = function(){
+document.getElementById('fInstructor').onchange = async function(){
 if(this.checked){
-const pin = prompt('Enter manager PIN to enable instructor advance booking:');
+const pin = await sitePrompt('Enter manager PIN to enable instructor advance booking:');
 if(pin !== state.settings.managerPin){
-if(pin !== null){ alert('Incorrect PIN.'); }
+if(pin !== null){ await siteAlert('Incorrect PIN.'); }
 this.checked = false;
 }
 }
 };
 
-document.getElementById('settingsToggle').onclick = () => {
+document.getElementById('settingsToggle').onclick = async () => {
   const p = document.getElementById('settingsPanel');
   if (p.style.display !== 'none') { p.style.display = 'none'; return; }
-  const entered = prompt('Enter Settings PIN:');
+  const entered = await sitePrompt('Enter Settings PIN:');
   if (entered === null) return;
-  if (entered !== String(state.settings.settingsPin)) { alert('Incorrect Settings PIN.'); return; }
+  if (entered !== String(state.settings.settingsPin)) { await siteAlert('Incorrect Settings PIN.'); return; }
   applySettingsToForm();
   p.style.display = 'block';
 };
-document.getElementById('changeSettingsPin').onclick = () => {
-  const current = prompt('Enter current Settings PIN:');
+document.getElementById('changeSettingsPin').onclick = async () => {
+  const current = await sitePrompt('Enter current Settings PIN:');
   if (current === null) return;
-  if (current !== String(state.settings.settingsPin)) { alert('Incorrect Settings PIN.'); return; }
-  const next = prompt('Enter new Settings PIN (4–8 digits):');
+  if (current !== String(state.settings.settingsPin)) { await siteAlert('Incorrect Settings PIN.'); return; }
+  const next = await sitePrompt('Enter new Settings PIN (4–8 digits):');
   if (next === null) return;
-  if (!/^\d{4,8}$/.test(next)) { alert('Use 4 to 8 numbers.'); return; }
-  const confirmPin = prompt('Confirm new Settings PIN:');
+  if (!/^\d{4,8}$/.test(next)) { await siteAlert('Use 4 to 8 numbers.'); return; }
+  const confirmPin = await sitePrompt('Confirm new Settings PIN:');
   if (confirmPin === null) return;
-  if (confirmPin !== next) { alert('PINs do not match.'); return; }
+  if (confirmPin !== next) { await siteAlert('PINs do not match.'); return; }
   state.settings.settingsPin = next;
-  saveSettings().then(() => alert('Settings PIN updated.')).catch(() => alert('Could not save the new PIN. Please try again.'));
+  try { await saveSettings(); await siteAlert('Settings PIN updated.'); } catch(e) { await siteAlert('Could not save the new PIN. Please try again.'); }
 };
 document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').style.display='none';
 
