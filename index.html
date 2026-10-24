@@ -205,18 +205,20 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 .close-x{float:right;background:none;border:none;color:var(--sage);cursor:pointer;font-size:14px;}
 .price-line{font-size:12px;color:var(--cream);margin-top:2px;}
 
-/* Branded same-day notice: opaque circle, crisp vector mark, blurred page. */
+/* Clean circular same-day notice, with no logo or background artwork. */
 .booking-notice-backdrop[hidden]{display:none;}
 .booking-notice-backdrop{position:fixed;inset:0;z-index:1000;background:rgba(12,30,13,.55);-webkit-backdrop-filter:blur(7px);backdrop-filter:blur(7px);display:flex;align-items:center;justify-content:center;padding:16px;}
-.booking-notice-ball{position:relative;width:min(440px,calc(100vw - 24px));aspect-ratio:1;border-radius:50%;background:#3B9E46;border:4px solid #FAF7F8;box-shadow:0 20px 65px rgba(0,0,0,.42);overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:18px 25px;color:#FAF7F8;}
-.booking-notice-art{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;}
-.booking-notice-content{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:22px;width:100%;padding:30px 8px;background:rgba(23,57,25,.89);border-radius:36px;}
-.booking-notice-logo{width:74px;height:74px;display:block;flex-shrink:0;filter:drop-shadow(0 2px 3px rgba(0,0,0,.12));}
-.booking-notice-message{font-family:var(--brand-font),Georgia,serif;font-size:clamp(19px,4.8vw,25px);line-height:1.35;font-weight:600;margin:0;color:#FAF7F8;text-shadow:0 1px 3px rgba(0,0,0,.3);}
-.booking-notice-close{background:#FAF7F8;color:#203F20;border:0;border-radius:22px;padding:10px 31px;cursor:pointer;font-family:inherit;font-size:16px;font-weight:700;min-height:44px;}
+.booking-notice-ball{position:relative;width:min(440px,calc(100vw - 24px));aspect-ratio:1;border-radius:50%;background:#203F20;border:4px solid #FAF7F8;box-shadow:0 20px 65px rgba(0,0,0,.42);display:flex;align-items:center;justify-content:center;text-align:center;padding:28px 24px;color:#FAF7F8;}
+.booking-notice-content{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px;width:100%;}
+.booking-notice-message{font-family:var(--brand-font);font-size:clamp(18px,4.8vw,25px);line-height:1.4;font-weight:600;margin:0;color:#FAF7F8;}
+.booking-notice-close{background:#FAF7F8;color:#203F20;border:0;border-radius:24px;padding:11px 34px;cursor:pointer;font-family:inherit;font-size:17px;font-weight:700;min-height:44px;}
 .booking-notice-close:hover{background:#F1EAF0;}
 .booking-notice-close:focus-visible{outline:3px solid #FAF7F8;outline-offset:4px;}
-@media(max-width:390px){.booking-notice-content{gap:13px;padding:22px 4px}.booking-notice-ball{padding:12px 20px}.booking-notice-message{font-size:clamp(17px,5vw,20px)}}
+@media(max-width:390px){.booking-notice-ball{padding:18px 12px}.booking-notice-content{gap:16px}.booking-notice-message{font-size:clamp(16px,4.9vw,20px)}}
+/* Brand header: visually balanced two-line wordmark. */
+.masthead h1{font-size:clamp(23px,4.2vw,31px);font-weight:700;letter-spacing:.1px;white-space:nowrap;}
+.masthead .sub{font-size:clamp(16px,3.1vw,22px);font-weight:500;letter-spacing:.2px;margin-top:1px;white-space:nowrap;}
+@media(max-width:500px){.masthead{align-items:flex-start;gap:8px}.masthead h1{font-size:clamp(19px,5vw,25px)}.masthead .sub{font-size:clamp(14px,3.7vw,19px)}.role-pill{flex-shrink:0}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -225,8 +227,8 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 
 <div class="masthead">
 <div>
-<h1 id="clubNameHeader">Short Game Tee Sheet</h1>
-<div class="sub">Practice Area Reservations</div>
+<h1 id="clubNameHeader">Green River Golf Club</h1>
+<div class="sub">Short Game Reservations</div>
 </div>
 <button class="role-pill" id="roleBtn">Front Desk</button>
 </div>
@@ -312,17 +314,6 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 
 <div class="booking-notice-backdrop" id="bookingNotice" hidden>
   <div class="booking-notice-ball" role="alertdialog" aria-modal="true" aria-labelledby="bookingNoticeMessage">
-    <!-- Single full-size vector rendering of the supplied course logo. -->
-    <svg class="booking-notice-art" viewBox="0 0 1200 1200" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
-      <defs><clipPath id="courseLogoCircle"><circle cx="600" cy="600" r="600"/></clipPath></defs>
-      <g clip-path="url(#courseLogoCircle)" fill="none" stroke="#FAF7F8" stroke-width="35" stroke-linecap="butt" stroke-linejoin="round">
-        <path d="M 265 140 C 435 175, 570 160, 800 100 C 850 86, 880 76, 915 69"/>
-        <path d="M 95 255 C 300 250, 490 260, 690 312 C 835 347, 1000 358, 1170 350"/>
-        <path d="M 0 540 C 265 530, 440 560, 625 630 C 815 704, 1030 720, 1200 723"/>
-        <path d="M 140 1010 C 360 958, 585 945, 770 976 C 900 995, 1030 1030, 1120 1055"/>
-      </g>
-      <path d="M 775 395 L 932 345 L 932 690" fill="none" stroke="#FAF7F8" stroke-width="35" stroke-linejoin="miter"/>
-    </svg>
     <div class="booking-notice-content">
       <p class="booking-notice-message" id="bookingNoticeMessage">Reservations are for<br>same-day booking only.<br>Contact a manager<br>for further help.</p>
       <button type="button" class="booking-notice-close" id="bookingNoticeClose">OK</button>
@@ -383,7 +374,7 @@ const r = await window.storage.get('settings');
 if(r && r.value){ state.settings = {...state.settings, ...JSON.parse(r.value)}; }
 }catch(e){ /* no settings saved yet, use defaults */ }
 applySettingsToForm();
-document.getElementById('clubNameHeader').textContent = state.settings.clubName;
+document.getElementById('clubNameHeader').textContent = 'Green River Golf Club';
 }
 
 async function saveSettings(){
@@ -406,25 +397,30 @@ async function saveReservationsForDate(){
 await window.storage.set(keyFor(state.date), JSON.stringify(state.reservations));
 }
 
-// Approximate astronomical sunrise/sunset for Green River Golf Club, Corona, CA.
-// Computed locally: no API request or extra service required.
-const SUN_LAT = 33.87, SUN_LON = -117.67;
-const SUN_ZONE = 'America/Los_Angeles';
-function sunTimeForDate(date, rising){
-  const start=Date.UTC(date.getFullYear(),date.getMonth(),date.getDate());
-  const n=Math.floor((start-Date.UTC(2000,0,1,12))/86400000)+0.0008;
-  const lw=-SUN_LON*Math.PI/180, phi=SUN_LAT*Math.PI/180;
-  const Jstar=n-lw/(2*Math.PI);
-  const M=(357.5291+0.98560028*Jstar)*Math.PI/180;
-  const C=(1.9148*Math.sin(M)+0.0200*Math.sin(2*M)+0.0003*Math.sin(3*M))*Math.PI/180;
-  const lambda=(M+C+102.9372*Math.PI/180+Math.PI)%(2*Math.PI);
-  const Jtransit=2451545+Jstar+0.0053*Math.sin(M)-0.0069*Math.sin(2*lambda);
-  const delta=Math.asin(Math.sin(lambda)*Math.sin(23.44*Math.PI/180));
-  const cosOmega=(Math.sin(-0.833*Math.PI/180)-Math.sin(phi)*Math.sin(delta))/(Math.cos(phi)*Math.cos(delta));
-  if(cosOmega < -1 || cosOmega > 1) return null;
-  const omega=Math.acos(cosOmega);
-  const jd=Jtransit+(rising?-omega:omega)/(2*Math.PI);
-  return new Date((jd-2440587.5)*86400000);
+// Sunrise and sunset at Green River Golf Club, Corona, California.
+// SunCalc solar formulas, with Pacific time including daylight saving time.
+const SUN_LAT=33.87, SUN_LON=-117.67;
+const SUN_ZONE='America/Los_Angeles';
+function sunTimeForDate(date,rising){
+  const rad=Math.PI/180, J1970=2440588, J2000=2451545;
+  const toJulian=d=>d.getTime()/86400000-0.5+J1970;
+  const fromJulian=j=>new Date((j+0.5-J1970)*86400000);
+  const lw=-SUN_LON*rad, phi=SUN_LAT*rad;
+  // Use local calendar date at midday UTC; calculations return real UTC instants.
+  const d=toJulian(new Date(Date.UTC(date.getFullYear(),date.getMonth(),date.getDate(),12)));
+  const n=Math.round(d-J2000-0.0009-lw/(2*Math.PI));
+  const ds=0.0009+lw/(2*Math.PI)+n;
+  const M=(357.5291+0.98560028*ds)*rad;
+  const C=(1.9148*Math.sin(M)+0.0200*Math.sin(2*M)+0.0003*Math.sin(3*M))*rad;
+  const L=M+C+102.9372*rad+Math.PI;
+  const dec=Math.asin(Math.sin(L)*Math.sin(23.4397*rad));
+  const Jnoon=J2000+ds+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+  const cosH=(Math.sin(-0.833*rad)-Math.sin(phi)*Math.sin(dec))/(Math.cos(phi)*Math.cos(dec));
+  if(cosH < -1 || cosH > 1) return null;
+  const H=Math.acos(cosH);
+  const a=0.0009+(H+lw)/(2*Math.PI)+n;
+  const Jset=J2000+a+0.0053*Math.sin(M)-0.0069*Math.sin(2*L);
+  return fromJulian(rising?Jnoon-(Jset-Jnoon):Jset);
 }
 function renderSunbar(){
   const fmt=new Intl.DateTimeFormat('en-US',{hour:'numeric',minute:'2-digit',hour12:true,timeZone:SUN_ZONE});
@@ -658,7 +654,7 @@ state.settings.slotEnd = parseInt(document.getElementById('sSlotEnd').value);
 state.settings.managerPin = document.getElementById('sPin').value.trim() || '1234';
 state.settings.adminPin = document.getElementById('sAdminPin').value.trim() || '9999';
 await saveSettings();
-document.getElementById('clubNameHeader').textContent = state.settings.clubName;
+document.getElementById('clubNameHeader').textContent = 'Green River Golf Club';
 document.getElementById('settingsPanel').style.display='none';
 renderSheet();
 };
