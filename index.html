@@ -434,7 +434,7 @@ renderSunbar();
 const opts = { weekday:'short', month:'short', day:'numeric' };
 document.getElementById('dateLabel').textContent = state.date.toLocaleDateString(undefined, opts);
 const diff = daysFromToday(state.date);
-let tag = diff===0 ? 'Today' : (diff===1 ? 'Tomorrow' : (diff>1? diff+' days out' : 'Past'));
+let tag = diff === 0 ? 'Today' : diff === 1 ? 'Tomorrow' : diff === -1 ? 'Yesterday' : diff > 1 ? diff + ' days out' : 'Past';
 document.getElementById('dateTag').textContent = tag;
 
 }
