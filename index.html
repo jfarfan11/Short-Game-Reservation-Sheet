@@ -219,6 +219,21 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 .masthead h1{font-size:clamp(23px,4.2vw,31px);font-weight:700;letter-spacing:.1px;white-space:nowrap;}
 .masthead .sub{font-size:clamp(16px,3.1vw,22px);font-weight:500;letter-spacing:.2px;margin-top:1px;white-space:nowrap;}
 @media(max-width:500px){.masthead{align-items:flex-start;gap:8px}.masthead h1{font-size:clamp(19px,5vw,25px)}.masthead .sub{font-size:clamp(14px,3.7vw,19px)}.role-pill{flex-shrink:0}}
+
+/* Centered club heading and separate staff-mode control */
+.masthead{display:block;text-align:center;padding-bottom:16px;}
+.masthead h1{font-size:clamp(27px,5.8vw,42px);white-space:normal;line-height:1.1;}
+.masthead .sub{font-size:clamp(18px,4vw,29px);white-space:normal;line-height:1.2;margin-top:5px;}
+.role-footer{display:flex;justify-content:center;margin-top:30px;padding-top:18px;border-top:1px solid var(--line);}
+.role-footer .role-pill{font-size:15px;padding:10px 20px;min-height:44px;}
+/* Two equally sized, individually centered sun panels */
+.sunbar{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:0;margin-bottom:16px;}
+.sunitem{display:flex;flex-direction:column;justify-content:center;align-items:center;gap:5px;min-width:0;padding:13px 8px;text-align:center;}
+.sunitem + .sunitem{border-left:1px solid #416444;}
+.sunitem svg{width:28px;height:28px;stroke-width:2;}
+.sunlabel{font-size:11px;letter-spacing:1.1px;}
+.suntime{font-size:clamp(16px,3.5vw,20px);line-height:1.2;}
+@media(max-width:390px){.sunbar{gap:0;padding:0}.sunitem{gap:5px;padding:12px 4px}.sunlabel{font-size:10px}.suntime{font-size:16px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -230,13 +245,17 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <h1 id="clubNameHeader">Green River Golf Club</h1>
 <div class="sub">Short Game Reservations</div>
 </div>
-<button class="role-pill" id="roleBtn">Front Desk</button>
 </div>
 
 <div class="sunbar" aria-label="Sunrise and sunset for selected date">
-  <div class="sunitem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h18M12 3v3M5.6 6.6l2.1 2.1M18.4 6.6l-2.1 2.1M5 14a7 7 0 0 1 14 0M12 21v-5m-3 3 3-3 3 3"/></svg><span class="sunlabel">Sunrise</span><span class="suntime" id="sunriseTime">--:--</span></div>
-  <span class="sunseparator" aria-hidden="true"></span>
-  <div class="sunitem"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 17h18M12 3v3M5.6 6.6l2.1 2.1M18.4 6.6l-2.1 2.1M5 14a7 7 0 0 1 14 0M12 16v5m-3-3 3 3 3-3"/></svg><span class="sunlabel">Sunset</span><span class="suntime" id="sunsetTime">--:--</span></div>
+  <div class="sunitem">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 24h24M8 20a8 8 0 0 1 16 0M16 3v5M5.5 9.5l3.6 3.6M26.5 9.5l-3.6 3.6M16 27V13m-5 5 5-5 5 5"/></svg>
+    <span class="sunlabel">Sunrise</span><span class="suntime" id="sunriseTime">--:--</span>
+  </div>
+  <div class="sunitem">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M4 24h24M8 20a8 8 0 0 1 16 0M16 3v5M5.5 9.5l3.6 3.6M26.5 9.5l-3.6 3.6M16 13v14m-5-5 5 5 5-5"/></svg>
+    <span class="sunlabel">Sunset</span><span class="suntime" id="sunsetTime">--:--</span>
+  </div>
 </div>
 
 <div class="datebar">
@@ -309,7 +328,7 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <div class="hint">Manager PIN unlocks manager mode on any device, and is required to check "Instructor advance booking." Admin PIN is reserved for an upcoming admin dashboard (bookings history, no-shows, etc.) — not active yet.</div>
 </div>
 
-
+<div class="role-footer"><button class="role-pill" id="roleBtn">Front Desk</button></div>
 </div>
 
 <div class="booking-notice-backdrop" id="bookingNotice" hidden>
