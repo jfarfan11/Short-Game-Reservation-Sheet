@@ -199,10 +199,21 @@ margin-top:4px;
 .hint{font-size:12px;color:var(--sage);margin-top:8px;line-height:1.5;}
 .err{color:#FFD4D0;font-size:12px;margin-top:6px;}
 .settings-toggle{
-background:none;border:none;color:var(--sage);font-size:12px;
-text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
+background:none;border:none;color:var(--sage);font-size:15px;
+font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 }
-.close-x{float:right;background:none;border:none;color:var(--sage);cursor:pointer;font-size:14px;}
+/* Concealed settings-PIN control: selectable text, same color as settings panel. */
+.secret-settings-link{background:none;border:0;padding:0;margin-left:5px;color:var(--green-panel);font:inherit;font-size:12px;cursor:pointer;user-select:text;-webkit-user-select:text;}
+.secret-settings-link::selection{background:#FAF7F8;color:#203F20;}
+.secret-settings-link:focus-visible{color:var(--cream);outline:1px solid var(--cream);}
+/* Minimal matching close controls for the booking and settings panels. */
+.panel{position:relative;}
+.close-x{position:absolute;top:10px;right:12px;display:flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;background:transparent;border:0;border-radius:50%;color:var(--cream);cursor:pointer;transition:background .15s ease,color .15s ease;}
+.close-x svg{width:19px;height:19px;stroke:currentColor;stroke-width:2;stroke-linecap:round;fill:none;}
+.close-x:hover{background:rgba(250,247,248,.1);}
+.close-x:focus-visible{outline:2px solid var(--cream);outline-offset:2px;}
+#bookForm h2{padding-right:38px;}
+#settingsPanel{padding-top:49px;}
 .price-line{font-size:12px;color:var(--cream);margin-top:2px;}
 
 /* Clean circular same-day notice, with no logo or background artwork. */
@@ -276,7 +287,7 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <div class="sheet" id="sheet"><div style="padding:20px;text-align:center;color:#50534C;">Loading…</div></div>
 
 <div class="panel" id="bookForm" style="display:none;">
-<span class="close-x" id="closeForm">✕ close</span>
+<button type="button" class="close-x" id="closeForm" aria-label="Close reservation form" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5 L19 19 M19 5 L5 19"/></svg></button>
 <h2 id="formTitle">New reservation</h2>
 <div class="row"><div style="flex:1;">
 <label>Name</label>
@@ -304,11 +315,11 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <button class="primary-btn" id="saveBtn">Save reservation</button>
 </div>
 
-<button class="settings-toggle" id="settingsToggle" style="display:none;">Manager settings</button>
+<button class="settings-toggle" id="settingsToggle" style="display:none;">Settings</button>
 
 <div class="panel" id="settingsPanel" style="display:none;">
-<span class="close-x" id="closeSettings">✕ close</span>
-<h2>Manager settings</h2>
+<button type="button" class="close-x" id="closeSettings" aria-label="Close settings" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5 L19 19 M19 5 L5 19"/></svg></button>
+
 <div class="row">
 <div style="flex:1;"><label>Club / area name</label><input id="sClubName"></div>
 </div>
@@ -325,7 +336,7 @@ text-decoration:underline;cursor:pointer;margin-top:20px;display:block;
 <div style="flex:1;"><label>Admin PIN</label><input id="sAdminPin" maxlength="8"></div>
 </div>
 <button class="primary-btn" id="saveSettingsBtn">Save settings</button>
-<div class="hint">Manager PIN unlocks manager mode on any device, and is required to check "Instructor advance booking." Admin PIN is reserved for an upcoming admin dashboard (bookings history, no-shows, etc.) — not active yet.</div>
+<div class="hint">Manager PIN unlocks manager mode on any device, and is required to check "Instructor advance booking." Admin PIN is reserved for an upcoming admin dashboard (bookings history, no-shows, etc.) — not active yet.<button type="button" id="changeSettingsPin" class="secret-settings-link" title="">Settings PIN Change</button></div>
 </div>
 
 <div class="role-footer"><button class="role-pill" id="roleBtn">Front Desk</button></div>
@@ -369,7 +380,7 @@ const DAY_MS = 86400000;
 let state = {
 date: new Date(),
 role: 'front', // 'front' | 'manager'
-settings: { clubName:'Short Game Tee Sheet', memberPrice:15, nonMemberPrice:30, slotStart:7, slotEnd:19, managerPin:'1234', adminPin:'9999' },
+settings: { clubName:'Short Game Tee Sheet', memberPrice:15, nonMemberPrice:30, slotStart:7, slotEnd:19, managerPin:'1234', adminPin:'9999', settingsPin:'5125' },
 reservations: [],
 editingSlot: null
 };
@@ -666,8 +677,26 @@ this.checked = false;
 };
 
 document.getElementById('settingsToggle').onclick = () => {
-const p = document.getElementById('settingsPanel');
-p.style.display = p.style.display==='none' ? 'block':'none';
+  const p = document.getElementById('settingsPanel');
+  if (p.style.display !== 'none') { p.style.display = 'none'; return; }
+  const entered = prompt('Enter Settings PIN:');
+  if (entered === null) return;
+  if (entered !== String(state.settings.settingsPin)) { alert('Incorrect Settings PIN.'); return; }
+  applySettingsToForm();
+  p.style.display = 'block';
+};
+document.getElementById('changeSettingsPin').onclick = () => {
+  const current = prompt('Enter current Settings PIN:');
+  if (current === null) return;
+  if (current !== String(state.settings.settingsPin)) { alert('Incorrect Settings PIN.'); return; }
+  const next = prompt('Enter new Settings PIN (4–8 digits):');
+  if (next === null) return;
+  if (!/^\d{4,8}$/.test(next)) { alert('Use 4 to 8 numbers.'); return; }
+  const confirmPin = prompt('Confirm new Settings PIN:');
+  if (confirmPin === null) return;
+  if (confirmPin !== next) { alert('PINs do not match.'); return; }
+  state.settings.settingsPin = next;
+  saveSettings().then(() => alert('Settings PIN updated.')).catch(() => alert('Could not save the new PIN. Please try again.'));
 };
 document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').style.display='none';
 
