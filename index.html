@@ -280,6 +280,14 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
  .sunitem svg { width:26px; height:26px; }
  .suntime { font-size:17px; }
 }
+
+.member-results{display:grid;gap:6px;margin:8px 0}.member-result{display:block;width:100%;text-align:left;background:#244823;border:1px solid var(--line);border-radius:5px;color:var(--cream);padding:10px;cursor:pointer;font:inherit}.member-result:hover{background:#356434}.member-note{font-size:12px;opacity:.85;margin:6px 0}.member-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.member-form-grid label{display:block;margin:6px 0}.member-form-grid input{width:100%}.member-actions{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.member-actions button{padding:9px;background:var(--green-panel);color:var(--cream);border:1px solid var(--line);cursor:pointer}.member-actions button:disabled{opacity:.5}.member-selected{color:#d7eecb;font-weight:bold}@media(max-width:480px){.member-form-grid{grid-template-columns:1fr}}
+/* Unified manager tools navigation */
+.manager-tools{display:none;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:18px}
+.manager-tools .manager-tool-btn{width:100%;min-height:48px;padding:11px 12px;background:var(--green-panel);border:1px solid var(--line);border-radius:5px;color:var(--cream);font:600 15px Arial,sans-serif;text-decoration:none;cursor:pointer;text-align:center;transition:background .15s,border-color .15s}
+.manager-tools .manager-tool-btn:hover,.manager-tools .manager-tool-btn:focus-visible{background:#356434;border-color:var(--cream);outline-offset:2px}
+.manager-tools .manager-tool-btn[aria-expanded="true"]{background:var(--cream);color:var(--ink);border-color:var(--cream)}
+@media(max-width:420px){.manager-tools{gap:8px}.manager-tools .manager-tool-btn{font-size:13px;padding:10px 6px}}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -334,13 +342,13 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <input id="fPhone" placeholder="555-0100">
 </div>
 <div style="flex:1;">
-<label>Status</label>
-<select id="fStatus">
-<option value="member">Member</option>
-<option value="nonmember">Non-member</option>
-</select>
+<label>Rate eligibility</label>
+<input id="fStatusDisplay" value="Non-member (default)" readonly>
+<input id="fStatus" type="hidden" value="nonmember">
 </div>
 </div>
+<div class="member-note">Member rate is applied only after selecting an active, verified member. Membership lookup currently requires secure manager sign-in.</div>
+<div id="bookingMemberLookup" style="display:none"><label>Find member by name, phone or email</label><input id="bookingMemberSearch" placeholder="Start typing member name or phone" autocomplete="off"><div class="member-results" id="bookingMemberResults"></div><div class="member-selected" id="bookingMemberSelected"></div></div>
 <div class="check">
 <input type="checkbox" id="fInstructor">
 <label for="fInstructor" style="margin:0;color:var(--cream);">Instructor advance booking</label>
@@ -350,7 +358,19 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <button class="primary-btn" id="saveBtn">Save reservation</button>
 </div>
 
-<button class="settings-toggle" id="settingsToggle" style="display:none;">Settings</button>
+<div class="manager-tools" id="managerTools"><button class="manager-tool-btn" id="membershipToggle" type="button" aria-controls="membershipPanel" aria-expanded="false">Membership Management</button><button class="manager-tool-btn" id="settingsToggle" type="button" aria-controls="settingsPanel" aria-expanded="false">Settings</button></div>
+<div class="panel" id="membershipPanel" style="display:none">
+<h2>Membership Management</h2>
+<p class="member-note">Secure manager sign-in is required. Your existing manager PIN does not grant database access.</p>
+<div id="memberLoginArea"><label>Manager email</label><input id="memberEmail" type="email" autocomplete="username" placeholder="Email"><label>Password</label><input id="memberPassword" type="password" autocomplete="current-password" placeholder="Password"><div class="member-actions"><button type="button" id="memberLogin">Sign in</button></div></div>
+<div id="memberAdminArea" style="display:none"><div class="member-actions"><button id="memberLogout" type="button">Sign out of membership</button></div>
+<label>Find member (name, phone, email)</label><input id="memberSearch" placeholder="Search existing members" autocomplete="off"><div class="member-results" id="memberResults"></div>
+<h3 id="memberEditTitle">Add approved member</h3><div class="member-form-grid">
+<div><label>First name</label><input id="mFirst"></div><div><label>Last name</label><input id="mLast"></div><div><label>Phone</label><input id="mPhone" type="tel"></div><div><label>Email (optional)</label><input id="mEmail" type="email"></div><div><label>Membership type</label><input id="mType" value="Sunset Club"></div><div><label>Status</label><select id="mStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div>
+<div class="member-actions"><button id="memberSave" type="button">Save member</button><button id="memberClear" type="button">Clear form / Add new</button></div>
+<p class="member-note">Monthly roster reconciliation will be added after manual membership management is tested. Never upload member CSVs to GitHub.</p>
+</div><div id="memberMessage" class="member-note" role="status"></div><div class="member-actions"><button id="memberClose" type="button">Close</button></div></div>
+
 
 <div class="panel" id="settingsPanel" style="display:none;">
 <button type="button" class="close-x" id="closeSettings" aria-label="Close settings" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5 L19 19 M19 5 L5 19"/></svg></button>
@@ -427,10 +447,13 @@ const DAY_MS = 86400000;
 let state = {
 date: new Date(),
 role: 'front', // 'front' | 'manager'
-settings: { clubName:'Short Game Tee Sheet', memberPrice:15, nonMemberPrice:30, slotStart:7, slotEnd:19, managerPin:'1234', adminPin:'9999', settingsPin:'5125' },
+settings: { clubName:'Short Game Tee Sheet', memberPrice:5, nonMemberPrice:30, slotStart:7, slotEnd:19, managerPin:'1234', adminPin:'9999', settingsPin:'5125' },
 reservations: [],
 editingSlot: null
 };
+let verifiedBookingMember=null;
+let editingMemberId=null;
+let memberSearchTimer=null;
 
 function fmtDate(d){
   const year = d.getFullYear();
@@ -670,7 +693,8 @@ state.editingSlot = timeStr;
 document.getElementById('formTitle').textContent = 'Book ' + hourLabel(parseInt(timeStr)) ;
 document.getElementById('fName').value='';
 document.getElementById('fPhone').value='';
-document.getElementById('fStatus').value='member';
+resetMemberBooking();
+document.getElementById('bookingMemberLookup').style.display=state.role==='manager' && memberAuthenticated ? 'block':'none';
 document.getElementById('fInstructor').checked = false;
 document.getElementById('formErr').textContent='';
 updatePriceLine();
@@ -679,8 +703,10 @@ document.getElementById('bookForm').scrollIntoView({behavior:'smooth', block:'ce
 }
 
 function updatePriceLine(){
-const status = document.getElementById('fStatus').value;
-const price = status==='member' ? state.settings.memberPrice : state.settings.nonMemberPrice;
+const status = verifiedBookingMember ? 'member' : 'nonmember';
+document.getElementById('fStatus').value=status;
+document.getElementById('fStatusDisplay').value=status==='member'?'Verified active member':'Non-member (default)';
+const price = status==='member' ? 5 : state.settings.nonMemberPrice;
 document.getElementById('priceLine').textContent = 'Price: $' + price;
 }
 
@@ -711,7 +737,7 @@ finally{reservationBusy=false;}
 async function saveReservation(){
 const name = document.getElementById('fName').value.trim();
 const phone = document.getElementById('fPhone').value.trim();
-const status = document.getElementById('fStatus').value;
+const status = verifiedBookingMember ? 'member' : 'nonmember';
 const instructor = document.getElementById('fInstructor').checked;
 const errEl = document.getElementById('formErr');
 errEl.textContent='';
@@ -726,7 +752,15 @@ return;
 }
 if(diff > 14){ errEl.textContent = 'Reservations can only be made up to two weeks in advance.'; return; }
 
-const price = status==='member' ? state.settings.memberPrice : state.settings.nonMemberPrice;
+if(verifiedBookingMember){
+  try {
+    const {data,error}=await supabaseClient.from('members').select('id,membership_status').eq('id',verifiedBookingMember.id).single();
+    if(error || !data || String(data.membership_status).toLowerCase()!=='active'){
+      errEl.textContent='Membership could not be reverified. Please reselect the member.';resetMemberBooking();return;
+    }
+  }catch(e){errEl.textContent='Member verification unavailable. Please retry.';return;}
+}
+const price = status==='member' ? 5 : state.settings.nonMemberPrice;
 if(reservationBusy) return;
 reservationBusy=true;
 try{
@@ -742,7 +776,7 @@ try{
     await siteAlert('This time was already booked on another device. Please choose another time.');
     return;
   }
-  const updated=[...latest,{ time: state.editingSlot, name, phone, status, instructor, price }];
+  const updated=[...latest,{ time: state.editingSlot, name, phone, status, instructor, price, member_id:verifiedBookingMember?.id||null }];
   await window.storage.set(keyFor(state.date),JSON.stringify(updated));
   state.reservations=updated;
   reservationsLoaded=true;
@@ -758,7 +792,8 @@ try{
 
 function applySettingsToForm(){
 document.getElementById('sClubName').value = state.settings.clubName;
-document.getElementById('sMemberPrice').value = state.settings.memberPrice;
+document.getElementById('sMemberPrice').value = 5;
+document.getElementById('sMemberPrice').disabled = true;
 document.getElementById('sNonMemberPrice').value = state.settings.nonMemberPrice;
 document.getElementById('sSlotStart').value = state.settings.slotStart;
 document.getElementById('sSlotEnd').value = state.settings.slotEnd;
@@ -771,10 +806,12 @@ state.role = role;
 const btn = document.getElementById('roleBtn');
 btn.textContent = role==='manager' ? 'Manager' : 'Front Desk';
 btn.className = 'role-pill' + (role==='manager' ? ' manager':'');
-document.getElementById('settingsToggle').style.display = role==='manager' ? 'block':'none';
+document.getElementById('managerTools').style.display=role==='manager'?'grid':'none';
+if(role!=='manager'){document.getElementById('membershipPanel').style.display='none';resetMemberBooking();document.getElementById('bookForm').style.display='none';}
 if(role!=='manager'){
 document.getElementById('settingsPanel').style.display='none';
 }
+syncManagerToolButtons();
 }
 
 document.getElementById('roleBtn').onclick = async () => {
@@ -843,7 +880,7 @@ bookingNoticeClose.onclick = closeBookingNotice;
 bookingNotice.addEventListener('click', (e)=>{if(e.target===bookingNotice)closeBookingNotice();});
 document.addEventListener('keydown',(e)=>{if(e.key==='Escape' && !bookingNotice.hidden)closeBookingNotice();});
 
-document.getElementById('fStatus').onchange = updatePriceLine;
+// Membership rate is never selectable manually.
 document.getElementById('saveBtn').onclick = saveReservation;
 document.getElementById('closeForm').onclick = () => document.getElementById('bookForm').style.display='none';
 
@@ -857,14 +894,20 @@ this.checked = false;
 }
 };
 
+function syncManagerToolButtons(){
+  document.getElementById('membershipToggle').setAttribute('aria-expanded',String(document.getElementById('membershipPanel').style.display!=='none'));
+  document.getElementById('settingsToggle').setAttribute('aria-expanded',String(document.getElementById('settingsPanel').style.display!=='none'));
+}
 document.getElementById('settingsToggle').onclick = async () => {
   const p = document.getElementById('settingsPanel');
-  if (p.style.display !== 'none') { p.style.display = 'none'; return; }
+  if (p.style.display !== 'none') { p.style.display = 'none'; syncManagerToolButtons(); return; }
   const entered = await sitePrompt('Enter Settings PIN:');
   if (entered === null) return;
   if (entered !== String(state.settings.settingsPin)) { await siteAlert('Incorrect Settings PIN.'); return; }
   applySettingsToForm();
   p.style.display = 'block';
+  document.getElementById('membershipPanel').style.display='none';
+  syncManagerToolButtons();
 };
 document.getElementById('changeSettingsPin').onclick = async () => {
   const current = await sitePrompt('Enter current Settings PIN:');
@@ -879,11 +922,11 @@ document.getElementById('changeSettingsPin').onclick = async () => {
   state.settings.settingsPin = next;
   try { await saveSettings(); await siteAlert('Settings PIN updated.'); } catch(e) { await siteAlert('Could not save the new PIN. Please try again.'); }
 };
-document.getElementById('closeSettings').onclick = () => document.getElementById('settingsPanel').style.display='none';
+document.getElementById('closeSettings').onclick = () => {document.getElementById('settingsPanel').style.display='none';syncManagerToolButtons();};
 
 document.getElementById('saveSettingsBtn').onclick = async () => {
 state.settings.clubName = document.getElementById('sClubName').value.trim() || 'Short Game Tee Sheet';
-state.settings.memberPrice = parseFloat(document.getElementById('sMemberPrice').value) || 0;
+state.settings.memberPrice = 5;
 state.settings.nonMemberPrice = parseFloat(document.getElementById('sNonMemberPrice').value) || 0;
 state.settings.slotStart = parseInt(document.getElementById('sSlotStart').value);
 state.settings.slotEnd = parseInt(document.getElementById('sSlotEnd').value);
@@ -892,11 +935,43 @@ state.settings.adminPin = document.getElementById('sAdminPin').value.trim() || '
 await saveSettings();
 document.getElementById('clubNameHeader').textContent = 'Green River Golf Club';
 document.getElementById('settingsPanel').style.display='none';
+syncManagerToolButtons();
 renderSheet();
 };
 
+
+// Protected membership operations: only authenticated, authorized managers can query the roster.
+let memberAuthenticated=false;
+function resetMemberBooking(){verifiedBookingMember=null;document.getElementById('fStatus').value='nonmember';document.getElementById('fStatusDisplay').value='Non-member (default)';document.getElementById('bookingMemberSearch').value='';document.getElementById('bookingMemberResults').replaceChildren();document.getElementById('bookingMemberSelected').textContent='';updatePriceLine();}
+function memberMsg(message){document.getElementById('memberMessage').textContent=message;}
+function phoneDigits(value){return String(value||'').replace(/\D/g,'');}
+function memberMatches(m,q){const term=q.toLowerCase();const digits=phoneDigits(q);return [m.first_name,m.last_name,`${m.first_name} ${m.last_name}`,m.email].some(v=>String(v||'').toLowerCase().includes(term)) || (digits.length>=3 && phoneDigits(m.phone).includes(digits));}
+async function findMembers(q){
+  if(!memberAuthenticated)throw new Error('Sign in as a membership manager first.');
+  const {data,error}=await supabaseClient.from('members').select('id,first_name,last_name,phone,email,membership_type,membership_status,lightspeed_ref').order('last_name').limit(1000);
+  if(error)throw error;
+  return (data||[]).filter(m=>memberMatches(m,q)).slice(0,25);
+}
+function showMatches(target,members,onPick){target.replaceChildren();if(!members.length){target.textContent='No matching members found.';return;}members.forEach(m=>{const b=document.createElement('button');b.type='button';b.className='member-result';b.textContent=`${m.first_name} ${m.last_name} · ${m.phone||'No phone'} · ${m.membership_status||'Unknown'} · ${m.membership_type||''}`;b.onclick=()=>onPick(m);target.appendChild(b);});}
+async function checkMemberSession(){const {data}=await supabaseClient.auth.getSession();if(!data?.session){memberAuthenticated=false;return;}const {data:ok,error}=await supabaseClient.rpc('is_membership_manager');memberAuthenticated=!error && ok===true;}
+function updateMemberAuthUI(){document.getElementById('memberLoginArea').style.display=memberAuthenticated?'none':'block';document.getElementById('memberAdminArea').style.display=memberAuthenticated?'block':'none';document.getElementById('bookingMemberLookup').style.display=memberAuthenticated&&state.role==='manager'?'block':'none';}
+document.getElementById('membershipToggle').onclick=async()=>{const panel=document.getElementById('membershipPanel');panel.style.display=panel.style.display==='none'?'block':'none';if(panel.style.display!=='none'){document.getElementById('settingsPanel').style.display='none';await checkMemberSession();updateMemberAuthUI();}syncManagerToolButtons();};
+document.getElementById('memberClose').onclick=()=>{document.getElementById('membershipPanel').style.display='none';syncManagerToolButtons();};
+document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;await checkMemberSession();if(!memberAuthenticated){await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}updateMemberAuthUI();memberMsg('Manager signed in.');}catch(e){memberMsg(e.message);}};
+document.getElementById('memberLogout').onclick=async()=>{await supabaseClient.auth.signOut();memberAuthenticated=false;resetMemberBooking();updateMemberAuthUI();memberMsg('Signed out.');};
+function clearMemberForm(){editingMemberId=null;['mFirst','mLast','mPhone','mEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('mType').value='Sunset Club';document.getElementById('mStatus').value='active';document.getElementById('memberEditTitle').textContent='Add approved member';}
+document.getElementById('memberClear').onclick=clearMemberForm;
+document.getElementById('memberSearch').oninput=()=>{clearTimeout(memberSearchTimer);const q=document.getElementById('memberSearch').value.trim();if(q.length<2){document.getElementById('memberResults').replaceChildren();return;}memberSearchTimer=setTimeout(async()=>{try{showMatches(document.getElementById('memberResults'),await findMembers(q),m=>{editingMemberId=m.id;document.getElementById('mFirst').value=m.first_name||'';document.getElementById('mLast').value=m.last_name||'';document.getElementById('mPhone').value=m.phone||'';document.getElementById('mEmail').value=m.email||'';document.getElementById('mType').value=m.membership_type||'';document.getElementById('mStatus').value=m.membership_status||'active';document.getElementById('memberEditTitle').textContent='Edit member';memberMsg('Editing selected member.');});}catch(e){memberMsg(e.message);}},250);};
+document.getElementById('memberSave').onclick=async()=>{if(!memberAuthenticated)return memberMsg('Sign in first.');const first_name=document.getElementById('mFirst').value.trim(),last_name=document.getElementById('mLast').value.trim();if(!first_name||!last_name)return memberMsg('First and last name required.');const payload={first_name,last_name,phone:document.getElementById('mPhone').value.trim()||null,email:document.getElementById('mEmail').value.trim()||null,membership_type:document.getElementById('mType').value.trim(),membership_status:document.getElementById('mStatus').value,updated_at:new Date().toISOString()};try{let response;if(editingMemberId){response=await supabaseClient.from('members').update(payload).eq('id',editingMemberId).select('id').single();}else{response=await supabaseClient.from('members').insert({...payload,source:'manual',manually_verified:true}).select('id').single();}if(response.error)throw response.error;clearMemberForm();document.getElementById('memberSearch').value='';document.getElementById('memberResults').replaceChildren();memberMsg('Member saved successfully.');}catch(e){memberMsg('Save failed: '+e.message);}};
+document.getElementById('bookingMemberSearch').oninput=()=>{resetVerifiedSelectionOnly();clearTimeout(memberSearchTimer);const q=document.getElementById('bookingMemberSearch').value.trim();if(q.length<2){document.getElementById('bookingMemberResults').replaceChildren();return;}memberSearchTimer=setTimeout(async()=>{try{showMatches(document.getElementById('bookingMemberResults'),await findMembers(q),m=>{if(String(m.membership_status).toLowerCase()!=='active'){document.getElementById('bookingMemberSelected').textContent='This member is not active.';return;}verifiedBookingMember=m;document.getElementById('fName').value=`${m.first_name} ${m.last_name}`;document.getElementById('fPhone').value=m.phone||'';document.getElementById('bookingMemberSelected').textContent='Active member verified — member rate applied';document.getElementById('bookingMemberResults').replaceChildren();updatePriceLine();});}catch(e){document.getElementById('bookingMemberSelected').textContent='Lookup failed: '+e.message;}},250);};
+function resetVerifiedSelectionOnly(){verifiedBookingMember=null;document.getElementById('bookingMemberSelected').textContent='';updatePriceLine();}
+document.getElementById('fName').addEventListener('input',resetVerifiedSelectionOnly);
+document.getElementById('fPhone').addEventListener('input',resetVerifiedSelectionOnly);
+
 (async function init(){
 await loadSettings();
+await checkMemberSession();
+updateMemberAuthUI();
 await loadReservations();
 })();
 </script>
