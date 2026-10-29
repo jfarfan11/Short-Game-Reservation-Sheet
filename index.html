@@ -327,6 +327,16 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 
 </div>
 
+<div class="panel" id="workstationPanel" style="display:none;">
+<h2>Authorize this device</h2>
+<p class="hint">This browser must be approved once by an authorized manager before it can access reservations. Authorization is saved in this browser only.</p>
+<div id="workstationStatus" class="hint" role="status"></div>
+<div class="row"><div style="flex:1;"><label>Device name</label><select id="workstationName"></select></div></div>
+<div class="row"><div style="flex:1;"><label>Manager email</label><input id="deviceEmail" type="email" autocomplete="username"></div></div>
+<div class="row"><div style="flex:1;"><label>Manager password</label><input id="devicePassword" type="password" autocomplete="current-password"></div></div>
+<button class="primary-btn" id="authorizeDevice" type="button">Authorize this browser</button>
+<p class="hint">If this browser was already approved, use the same browser profile. Clearing its site data requires reauthorization.</p>
+</div>
 <div class="sheet" id="sheet"><div style="padding:20px;text-align:center;color:#50534C;">Loading…</div></div>
 
 <div class="panel" id="bookForm" style="display:none;">
@@ -347,9 +357,9 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <input id="fStatus" type="hidden" value="nonmember">
 </div>
 </div>
-<div class="member-note">Member rate is applied only after selecting an active, verified member. Membership lookup currently requires secure manager sign-in.</div>
-<div id="bookingMemberLookup" style="display:none"><label>Find member by name, phone or email</label><input id="bookingMemberSearch" placeholder="Start typing member name or phone" autocomplete="off"><div class="member-results" id="bookingMemberResults"></div><div class="member-selected" id="bookingMemberSelected"></div></div>
-<div class="check">
+<div class="member-note">Member rate is applied only after selecting an active, verified member. Search for an active member below to apply the verified member rate.</div>
+<div id="bookingMemberLookup" style="display:none"><label>Find member by name or phone</label><input id="bookingMemberSearch" placeholder="Start typing member name or phone" autocomplete="off"><div class="member-results" id="bookingMemberResults"></div><div class="member-selected" id="bookingMemberSelected"></div></div>
+<div class="check" id="instructorCheckRow">
 <input type="checkbox" id="fInstructor">
 <label for="fInstructor" style="margin:0;color:var(--cream);">Instructor advance booking</label>
 </div>
@@ -386,12 +396,12 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <div style="flex:1;"><label>Open hour (24h)</label><input id="sSlotStart" type="number" min="0" max="23"></div>
 <div style="flex:1;"><label>Close hour (24h)</label><input id="sSlotEnd" type="number" min="1" max="24"></div>
 </div>
-<div class="row">
+<div class="row" id="legacyPinSettings" style="display:none">
 <div style="flex:1;"><label>Manager PIN</label><input id="sPin" maxlength="8"></div>
 <div style="flex:1;"><label>Admin PIN</label><input id="sAdminPin" maxlength="8"></div>
 </div>
 <button class="primary-btn" id="saveSettingsBtn">Save settings</button>
-<div class="hint">Manager PIN unlocks manager mode on any device, and is required to check "Instructor advance booking." Admin PIN is reserved for an upcoming admin dashboard (bookings history, no-shows, etc.) — not active yet.<button type="button" id="changeSettingsPin" class="secret-settings-link" title="">Settings PIN Change</button></div>
+<div class="hint">Manager PIN controls the interface only. Changing prices/hours and making instructor bookings require a verified Supabase manager login. PIN changes are disabled in this test build.</div>
 </div>
 
 <div class="role-footer"><button class="role-pill" id="roleBtn">Front Desk</button></div>
@@ -424,23 +434,59 @@ const supabaseClient = supabase.createClient(
   'sb_publishable_qfuuj7g0uZl51nIIC5N3og_XanHphxF'
 );
 
-window.storage = {
-  async get(key) {
-    const { data, error } = await supabaseClient
-      .from('kv_store')
-      .select('value')
-      .eq('key', key)
-      .maybeSingle();
-    if (error) throw error;
-    return data ? { key, value: data.value } : null;
-  },
-  async set(key, value) {
-    const { error } = await supabaseClient
-      .from('kv_store')
-      .upsert({ key, value });
-    if (error) throw error;
-    return { key, value };
+const WORKSTATION_KEY = 'gr-short-game-workstation-v1';
+const MANAGER_SESSION_KEY = 'gr-short-game-manager-session-start-v1';
+const MANAGER_MAX_MS = 10 * 60 * 1000;
+const MANAGER_TYPING_GRACE_MS = 60 * 1000;
+let workstationToken = localStorage.getItem(WORKSTATION_KEY) || '';
+let workstationReady = false;
+const rpc = async (name, args={}) => {
+  const {data,error} = await supabaseClient.rpc(name,args);
+  if(error) throw error;
+  return data;
+};
+function dbTime(t){ return String(t||'').slice(0,5); }
+function bookingFromDb(r){return {id:r.reservation_id,time:dbTime(r.reservation_time),name:r.guest_name,phone:r.guest_phone||'',status:r.rate_type,price:Number(r.price),instructor:!!r.instructor};}
+function currentDateKey(){return fmtDate(state.date);}
+async function verifyDevice(){
+  workstationReady=false;
+  if(workstationToken){
+    try { workstationReady=await rpc('verify_staff_workstation',{p_token:workstationToken})===true; }
+    catch(e){console.warn('Device verification failed',e);}
   }
+  document.getElementById('workstationPanel').style.display=workstationReady?'none':'block';
+  return workstationReady;
+}
+function workstationOptions(){
+  const select=document.getElementById('workstationName');
+  for(let i=1;i<=10;i++){const o=document.createElement('option');o.value=o.textContent='Golf Shop PC '+i;select.appendChild(o);}
+  for(let i=1;i<=5;i++){const o=document.createElement('option');o.value=o.textContent='Manager Device '+i;select.appendChild(o);}
+}
+workstationOptions();
+document.getElementById('authorizeDevice').onclick=async()=>{
+  const status=document.getElementById('workstationStatus');
+  const btn=document.getElementById('authorizeDevice');
+  btn.disabled=true;status.textContent='Checking manager authorization…';
+  try{
+    const email=document.getElementById('deviceEmail').value.trim();
+    const password=document.getElementById('devicePassword').value;
+    if(!email||!password)throw new Error('Enter manager email and password.');
+    const {error}=await supabaseClient.auth.signInWithPassword({email,password});
+    document.getElementById('devicePassword').value='';
+    if(error)throw error;
+    const ok=await rpc('is_membership_manager');
+    if(ok!==true)throw new Error('This account is not authorized as a manager.');
+    const token=await rpc('authorize_staff_workstation',{p_workstation_name:document.getElementById('workstationName').value});
+    if(typeof token!=='string'||!/^[a-f0-9]{64}$/i.test(token))throw new Error('Unexpected authorization response.');
+    workstationToken=token;
+    localStorage.setItem(WORKSTATION_KEY,token);
+    if(!await verifyDevice())throw new Error('Device token could not be verified.');
+    await supabaseClient.auth.signOut();
+    memberAuthenticated=false;updateMemberAuthUI();
+    status.textContent='Browser authorized.';
+    await loadSettings();await loadReservations();
+  }catch(e){status.textContent='Authorization failed: '+e.message;}
+  finally{btn.disabled=false;}
 };
 
 const DAY_MS = 86400000;
@@ -476,17 +522,25 @@ return hh+':00 '+ampm;
 }
 
 async function loadSettings(){
-try{
-const r = await window.storage.get('settings');
-if(r && r.value){ state.settings = {...state.settings, ...JSON.parse(r.value)}; }
-}catch(e){ /* no settings saved yet, use defaults */ }
-applySettingsToForm();
-document.getElementById('clubNameHeader').textContent = 'Green River Golf Club';
+  // Legacy PINs remain in the old settings record during staging.
+  // They are UI-only; database writes require manager authentication.
+  try {
+    const {data,error}=await supabaseClient.from('kv_store').select('value').eq('key','settings').maybeSingle();
+    if(!error&&data?.value){
+      const old=JSON.parse(data.value);
+      for(const key of ['clubName','managerPin','adminPin','settingsPin'])if(old[key]!==undefined)state.settings[key]=old[key];
+    }
+  }catch(e){console.warn('Legacy display settings unavailable',e);}
+  if(workstationReady){
+    const rows=await rpc('get_booking_config',{p_token:workstationToken});
+    const cfg=Array.isArray(rows)?rows[0]:rows;
+    if(!cfg)throw new Error('Booking settings unavailable');
+    Object.assign(state.settings,{memberPrice:Number(cfg.member_price),nonMemberPrice:Number(cfg.nonmember_price),slotStart:Number(cfg.slot_start),slotEnd:Number(cfg.slot_end)});
+  }
+  applySettingsToForm();
+  document.getElementById('clubNameHeader').textContent='Green River Golf Club';
 }
 
-async function saveSettings(){
-await window.storage.set('settings', JSON.stringify(state.settings));
-}
 
 // Never treat a failed data request as an empty booking sheet.
 let reservationsLoaded = false;
@@ -499,35 +553,26 @@ function showReservationError(){
   document.getElementById('retryReservations').onclick = () => loadReservations();
 }
 async function loadReservations({quiet=false}={}){
-  if(reservationBusy) return;
-  const token = ++reservationLoadToken;
-  const requestedKey = keyFor(state.date);
-  if(!quiet) document.getElementById('sheet').innerHTML = '<div style="padding:20px;text-align:center;color:#50534C;">Loading reservations…</div>';
+  if(reservationBusy)return;
+  const token=++reservationLoadToken;
+  const requestedDate=currentDateKey();
+  if(!workstationReady){reservationsLoaded=false;document.getElementById('sheet').innerHTML='<div style="padding:20px;text-align:center;color:#50534C;">Manager authorization required on this browser.</div>';return;}
+  if(!quiet)document.getElementById('sheet').innerHTML='<div style="padding:20px;text-align:center;color:#50534C;">Loading reservations…</div>';
   let lastError;
-  for(let attempt=0; attempt<3; attempt++){
+  for(let attempt=0;attempt<3;attempt++){
     try{
-      // Supabase query runs on each refresh, rather than reading cached bookings.
-      const r = await window.storage.get(requestedKey);
-      const parsed = r && r.value ? JSON.parse(r.value) : [];
-      if(!Array.isArray(parsed)) throw new Error('Invalid reservation data');
-      if(token !== reservationLoadToken || requestedKey !== keyFor(state.date)) return;
-      state.reservations = parsed;
-      reservationsLoaded = true;
-      renderSheet();
-      return;
-    }catch(e){
-      lastError=e;
-      if(attempt<2) await waitForRetry(700*(attempt+1));
-    }
+      const rows=await rpc('get_staff_reservations',{p_token:workstationToken,p_date:requestedDate});
+      if(token!==reservationLoadToken||requestedDate!==currentDateKey())return;
+      state.reservations=(rows||[]).map(bookingFromDb);
+      reservationsLoaded=true;renderSheet();return;
+    }catch(e){lastError=e;if(attempt<2)await waitForRetry(700*(attempt+1));}
   }
-  if(token !== reservationLoadToken || requestedKey !== keyFor(state.date)) return;
+  if(token!==reservationLoadToken||requestedDate!==currentDateKey())return;
   console.error('Could not load reservations:',lastError);
-  reservationsLoaded=false;
-  showReservationError();
+  reservationsLoaded=false;showReservationError();
 }
-async function saveReservationsForDate(){
-  await window.storage.set(keyFor(state.date), JSON.stringify(state.reservations));
-}
+
+
 // Synchronize when returning to the tab and periodically while idle.
 function refreshReservationsIfIdle(){
   if(document.hidden || reservationBusy) return;
@@ -694,7 +739,8 @@ document.getElementById('formTitle').textContent = 'Book ' + hourLabel(parseInt(
 document.getElementById('fName').value='';
 document.getElementById('fPhone').value='';
 resetMemberBooking();
-document.getElementById('bookingMemberLookup').style.display=state.role==='manager' && memberAuthenticated ? 'block':'none';
+document.getElementById('bookingMemberLookup').style.display='block';
+ document.getElementById('instructorCheckRow').style.display=state.role==='manager'?'flex':'none';
 document.getElementById('fInstructor').checked = false;
 document.getElementById('formErr').textContent='';
 updatePriceLine();
@@ -706,100 +752,136 @@ function updatePriceLine(){
 const status = verifiedBookingMember ? 'member' : 'nonmember';
 document.getElementById('fStatus').value=status;
 document.getElementById('fStatusDisplay').value=status==='member'?'Verified active member':'Non-member (default)';
-const price = status==='member' ? 5 : state.settings.nonMemberPrice;
+const price = status==='member' ? state.settings.memberPrice : state.settings.nonMemberPrice;
 document.getElementById('priceLine').textContent = 'Price: $' + price;
 }
 
 async function cancelSlot(timeStr){
-if(reservationBusy) return;
-if(!reservationsLoaded){ showReservationError(); return; }
-const existing = state.reservations.find(r=>r.time===timeStr);
-if(state.role !== 'manager' && existing && existing.instructor){
-  await siteAlert('Only a manager can cancel an instructor advance booking.'); return;
-}
-if(!await siteConfirm('Cancel this reservation?')) return;
-reservationBusy=true;
-try{
-  const r=await window.storage.get(keyFor(state.date));
-  const latest=r&&r.value?JSON.parse(r.value):[];
-  if(!Array.isArray(latest)) throw new Error('Invalid reservation data');
-  const current=latest.find(r=>r.time===timeStr);
-  if(!current){ state.reservations=latest;renderSheet();await siteAlert('This reservation was already removed.');return; }
-  if(state.role!=='manager' && current.instructor){state.reservations=latest;renderSheet();await siteAlert('Only a manager can cancel an instructor advance booking.');return;}
-  const updated=latest.filter(r=>r.time!==timeStr);
-  await window.storage.set(keyFor(state.date),JSON.stringify(updated));
-  state.reservations=updated;
-  renderSheet();
-}catch(e){ console.error(e);reservationsLoaded=false;showReservationError();await siteAlert('Could not confirm or save cancellation. Please retry.'); }
-finally{reservationBusy=false;}
+  if(reservationBusy||!reservationsLoaded)return;
+  const existing=state.reservations.find(r=>r.time===timeStr);
+  if(!existing?.id){await siteAlert('Reservation not found. Refresh the sheet.');return;}
+  if(existing.instructor&&state.role!=='manager'){await siteAlert('Only a manager can cancel an instructor booking.');return;}
+  if(!await siteConfirm('Cancel this reservation?'))return;
+  reservationBusy=true;
+  try{
+    if(existing.instructor){
+      await checkMemberSession();
+      if(!memberAuthenticated)throw new Error('Sign in as an authorized manager under Membership Management first.');
+      await rpc('cancel_manager_reservation',{p_reservation_id:existing.id});
+    }else{
+      await rpc('cancel_staff_reservation',{p_token:workstationToken,p_reservation_id:existing.id});
+    }
+    state.reservations=state.reservations.filter(r=>r.id!==existing.id);
+    renderSheet();
+  }catch(e){await siteAlert('Cancellation failed: '+e.message);}
+  finally{reservationBusy=false;await loadReservations({quiet:true});}
 }
 
 async function saveReservation(){
-const name = document.getElementById('fName').value.trim();
-const phone = document.getElementById('fPhone').value.trim();
-const status = verifiedBookingMember ? 'member' : 'nonmember';
-const instructor = document.getElementById('fInstructor').checked;
-const errEl = document.getElementById('formErr');
-errEl.textContent='';
-
-if(!name){ errEl.textContent = 'Enter a name.'; return; }
-
-const diff = daysFromToday(state.date);
-if(diff < 0){ errEl.textContent = 'Cannot book a past date.'; return; }
-if(diff > 0 && !instructor){
-errEl.textContent = 'Only same-day booking is allowed unless this is an instructor advance booking.';
-return;
-}
-if(diff > 14){ errEl.textContent = 'Reservations can only be made up to two weeks in advance.'; return; }
-
-if(verifiedBookingMember){
-  try {
-    const {data,error}=await supabaseClient.from('members').select('id,membership_status').eq('id',verifiedBookingMember.id).single();
-    if(error || !data || String(data.membership_status).toLowerCase()!=='active'){
-      errEl.textContent='Membership could not be reverified. Please reselect the member.';resetMemberBooking();return;
+  const name=document.getElementById('fName').value.trim();
+  const phone=document.getElementById('fPhone').value.trim();
+  const instructor=document.getElementById('fInstructor').checked;
+  const errEl=document.getElementById('formErr');errEl.textContent='';
+  if(name.length<2){errEl.textContent='Enter a guest name (at least 2 characters).';return;}
+  if(!workstationReady){errEl.textContent='Authorize this browser first.';return;}
+  const diff=daysFromToday(state.date);
+  if(diff<0||diff>14){errEl.textContent='Cannot book this date.';return;}
+  if(diff>0&&!instructor){errEl.textContent='Only instructor bookings may be made in advance.';return;}
+  if(instructor&&state.role!=='manager'){errEl.textContent='Manager mode required.';return;}
+  if(reservationBusy)return;
+  reservationBusy=true;
+  const slot=state.editingSlot;
+  try{
+    if(instructor){
+      await checkMemberSession();
+      if(!memberAuthenticated)throw new Error('Sign in as an authorized manager under Membership Management first.');
+      await rpc('create_manager_reservation',{p_date:currentDateKey(),p_time:slot,p_name:name,p_phone:phone||null,p_member_id:verifiedBookingMember?.id||null});
+    }else{
+      await rpc('create_staff_reservation',{p_token:workstationToken,p_date:currentDateKey(),p_time:slot,p_name:name,p_phone:phone||null,p_member_id:verifiedBookingMember?.id||null});
     }
-  }catch(e){errEl.textContent='Member verification unavailable. Please retry.';return;}
-}
-const price = status==='member' ? 5 : state.settings.nonMemberPrice;
-if(reservationBusy) return;
-reservationBusy=true;
-try{
-  // Re-read before saving to catch bookings made on other devices.
-  const r=await window.storage.get(keyFor(state.date));
-  const latest=r&&r.value?JSON.parse(r.value):[];
-  if(!Array.isArray(latest)) throw new Error('Invalid reservation data');
-  if(latest.some(r=>r.time===state.editingSlot)){
-    state.reservations=latest;
-    reservationsLoaded=true;
     document.getElementById('bookForm').style.display='none';
-    renderSheet();
-    await siteAlert('This time was already booked on another device. Please choose another time.');
-    return;
-  }
-  const updated=[...latest,{ time: state.editingSlot, name, phone, status, instructor, price, member_id:verifiedBookingMember?.id||null }];
-  await window.storage.set(keyFor(state.date),JSON.stringify(updated));
-  state.reservations=updated;
-  reservationsLoaded=true;
-  document.getElementById('bookForm').style.display='none';
-  renderSheet();
-}catch(e){
-  console.error('Reservation save failed:',e);
-  reservationsLoaded=false;
-  showReservationError();
-  errEl.textContent='Could not verify or save this reservation. Check the connection and retry.';
-}finally{reservationBusy=false;}
+  }catch(e){
+    console.error('Reservation save failed:',e);
+    errEl.textContent=e.code==='23505'?'This time was already booked. Refresh and select another slot.':'Could not save: '+e.message;
+  }finally{reservationBusy=false;await loadReservations({quiet:true});}
 }
+
 
 function applySettingsToForm(){
 document.getElementById('sClubName').value = state.settings.clubName;
-document.getElementById('sMemberPrice').value = 5;
-document.getElementById('sMemberPrice').disabled = true;
+document.getElementById('sMemberPrice').value = state.settings.memberPrice;
+document.getElementById('sMemberPrice').disabled = false;
 document.getElementById('sNonMemberPrice').value = state.settings.nonMemberPrice;
 document.getElementById('sSlotStart').value = state.settings.slotStart;
 document.getElementById('sSlotEnd').value = state.settings.slotEnd;
 document.getElementById('sPin').value = state.settings.managerPin;
 document.getElementById('sAdminPin').value = state.settings.adminPin;
 }
+
+// Manager access has a fixed ten-minute limit. Only active typing in an
+// open manager form can delay logout, for up to 60 seconds after the last keystroke.
+// The workstation authorization token is independent and is never cleared here.
+let managerLastTypingAt = 0;
+let managerLogoutInProgress = false;
+function managerSessionStart(){
+  const value = Number(localStorage.getItem(MANAGER_SESSION_KEY));
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+function startManagerSessionClock(){
+  localStorage.setItem(MANAGER_SESSION_KEY, String(Date.now()));
+  managerLastTypingAt = 0;
+}
+function clearManagerSessionClock(){
+  localStorage.removeItem(MANAGER_SESSION_KEY);
+  managerLastTypingAt = 0;
+}
+function managerIsTyping(){
+  const active = document.activeElement;
+  if (!active || !active.matches('input:not([type="checkbox"]), textarea, select')) return false;
+  return ['bookForm', 'membershipPanel', 'settingsPanel'].some(id => {
+    const panel = document.getElementById(id);
+    return panel.style.display !== 'none' && panel.contains(active);
+  });
+}
+document.addEventListener('input', event => {
+  if (state.role === 'manager' && managerIsTyping() && event.isTrusted) {
+    managerLastTypingAt = Date.now();
+  }
+});
+async function endManagerSession(message='Manager session expired. Sign in again to use manager tools.'){
+  if(managerLogoutInProgress)return;
+  managerLogoutInProgress=true;
+  clearManagerSessionClock();
+  // Close privileged panels immediately, before the network sign-out completes.
+  memberAuthenticated=false;
+  editingMemberId=null;
+  document.getElementById('memberPassword').value='';
+  document.getElementById('devicePassword').value='';
+  document.getElementById('memberResults').replaceChildren();
+  document.getElementById('settingsPanel').style.display='none';
+  document.getElementById('membershipPanel').style.display='none';
+  document.getElementById('bookForm').style.display='none';
+  setRole('front');
+  updateMemberAuthUI();
+  memberMsg(message);
+  try { await supabaseClient.auth.signOut(); }
+  catch(e) { console.error('Manager sign-out failed:',e); memberMsg('Manager session expired. Please reload if sign-out did not complete.'); }
+  finally { managerLogoutInProgress=false; }
+}
+function managerSessionExpired(){
+  const started=managerSessionStart();
+  if(!started)return false;
+  const now=Date.now();
+  if(now-started < MANAGER_MAX_MS)return false;
+  // After ten minutes, typing may postpone logout only while currently typing.
+  return !(managerIsTyping() && managerLastTypingAt >= started && now-managerLastTypingAt < MANAGER_TYPING_GRACE_MS);
+}
+async function enforceManagerTimeout(){
+  if(!managerLogoutInProgress && managerSessionExpired()) await endManagerSession();
+}
+setInterval(enforceManagerTimeout,1000);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)enforceManagerTimeout();});
+window.addEventListener('focus',enforceManagerTimeout);
 
 function setRole(role){
 state.role = role;
@@ -815,9 +897,9 @@ syncManagerToolButtons();
 }
 
 document.getElementById('roleBtn').onclick = async () => {
-if(state.role==='manager'){ setRole('front'); return; }
+if(state.role==='manager'){ await endManagerSession('Manager signed out.'); return; }
 const pin = await sitePrompt('Enter manager PIN:');
-if(pin === state.settings.managerPin){ setRole('manager'); }
+if(pin === state.settings.managerPin){ startManagerSessionClock(); setRole('manager'); }
 else if(pin!==null){ await siteAlert('Incorrect PIN.'); }
 };
 
@@ -904,39 +986,32 @@ document.getElementById('settingsToggle').onclick = async () => {
   const entered = await sitePrompt('Enter Settings PIN:');
   if (entered === null) return;
   if (entered !== String(state.settings.settingsPin)) { await siteAlert('Incorrect Settings PIN.'); return; }
+  await checkMemberSession();
+  if(!memberAuthenticated){await siteAlert('Sign in as a manager under Membership Management first.');return;}
   applySettingsToForm();
   p.style.display = 'block';
   document.getElementById('membershipPanel').style.display='none';
   syncManagerToolButtons();
 };
-document.getElementById('changeSettingsPin').onclick = async () => {
-  const current = await sitePrompt('Enter current Settings PIN:');
-  if (current === null) return;
-  if (current !== String(state.settings.settingsPin)) { await siteAlert('Incorrect Settings PIN.'); return; }
-  const next = await sitePrompt('Enter new Settings PIN (4–8 digits):');
-  if (next === null) return;
-  if (!/^\d{4,8}$/.test(next)) { await siteAlert('Use 4 to 8 numbers.'); return; }
-  const confirmPin = await sitePrompt('Confirm new Settings PIN:');
-  if (confirmPin === null) return;
-  if (confirmPin !== next) { await siteAlert('PINs do not match.'); return; }
-  state.settings.settingsPin = next;
-  try { await saveSettings(); await siteAlert('Settings PIN updated.'); } catch(e) { await siteAlert('Could not save the new PIN. Please try again.'); }
-};
+
+
 document.getElementById('closeSettings').onclick = () => {document.getElementById('settingsPanel').style.display='none';syncManagerToolButtons();};
 
-document.getElementById('saveSettingsBtn').onclick = async () => {
-state.settings.clubName = document.getElementById('sClubName').value.trim() || 'Short Game Tee Sheet';
-state.settings.memberPrice = 5;
-state.settings.nonMemberPrice = parseFloat(document.getElementById('sNonMemberPrice').value) || 0;
-state.settings.slotStart = parseInt(document.getElementById('sSlotStart').value);
-state.settings.slotEnd = parseInt(document.getElementById('sSlotEnd').value);
-state.settings.managerPin = document.getElementById('sPin').value.trim() || '1234';
-state.settings.adminPin = document.getElementById('sAdminPin').value.trim() || '9999';
-await saveSettings();
-document.getElementById('clubNameHeader').textContent = 'Green River Golf Club';
-document.getElementById('settingsPanel').style.display='none';
-syncManagerToolButtons();
-renderSheet();
+document.getElementById('saveSettingsBtn').onclick=async()=>{
+  const btn=document.getElementById('saveSettingsBtn');btn.disabled=true;
+  try{
+    await checkMemberSession();
+    if(!memberAuthenticated)throw new Error('Sign in as an authorized manager under Membership Management first.');
+    const member=Number(document.getElementById('sMemberPrice').value);
+    const nonmember=Number(document.getElementById('sNonMemberPrice').value);
+    const start=Number(document.getElementById('sSlotStart').value);
+    const end=Number(document.getElementById('sSlotEnd').value);
+    await rpc('update_booking_config',{p_member_price:member,p_nonmember_price:nonmember,p_slot_start:start,p_slot_end:end});
+    await loadSettings();
+    document.getElementById('settingsPanel').style.display='none';syncManagerToolButtons();renderSheet();
+    await siteAlert('Booking prices and hours updated.');
+  }catch(e){await siteAlert('Could not save settings: '+e.message);}
+  finally{btn.disabled=false;}
 };
 
 
@@ -953,23 +1028,43 @@ async function findMembers(q){
   return (data||[]).filter(m=>memberMatches(m,q)).slice(0,25);
 }
 function showMatches(target,members,onPick){target.replaceChildren();if(!members.length){target.textContent='No matching members found.';return;}members.forEach(m=>{const b=document.createElement('button');b.type='button';b.className='member-result';b.textContent=`${m.first_name} ${m.last_name} · ${m.phone||'No phone'} · ${m.membership_status||'Unknown'} · ${m.membership_type||''}`;b.onclick=()=>onPick(m);target.appendChild(b);});}
-async function checkMemberSession(){const {data}=await supabaseClient.auth.getSession();if(!data?.session){memberAuthenticated=false;return;}const {data:ok,error}=await supabaseClient.rpc('is_membership_manager');memberAuthenticated=!error && ok===true;}
-function updateMemberAuthUI(){document.getElementById('memberLoginArea').style.display=memberAuthenticated?'none':'block';document.getElementById('memberAdminArea').style.display=memberAuthenticated?'block':'none';document.getElementById('bookingMemberLookup').style.display=memberAuthenticated&&state.role==='manager'?'block':'none';}
+async function checkMemberSession(){if(managerSessionExpired()){await endManagerSession();return;}const {data}=await supabaseClient.auth.getSession();if(!data?.session){memberAuthenticated=false;return;}if(!managerSessionStart()){memberAuthenticated=false;await supabaseClient.auth.signOut();return;}const {data:ok,error}=await supabaseClient.rpc('is_membership_manager');memberAuthenticated=!error && ok===true;}
+function updateMemberAuthUI(){document.getElementById('memberLoginArea').style.display=memberAuthenticated?'none':'block';document.getElementById('memberAdminArea').style.display=memberAuthenticated?'block':'none';document.getElementById('bookingMemberLookup').style.display=document.getElementById('bookForm').style.display==='none'?'none':'block';}
 document.getElementById('membershipToggle').onclick=async()=>{const panel=document.getElementById('membershipPanel');panel.style.display=panel.style.display==='none'?'block':'none';if(panel.style.display!=='none'){document.getElementById('settingsPanel').style.display='none';await checkMemberSession();updateMemberAuthUI();}syncManagerToolButtons();};
 document.getElementById('memberClose').onclick=()=>{document.getElementById('membershipPanel').style.display='none';syncManagerToolButtons();};
-document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;await checkMemberSession();if(!memberAuthenticated){await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}updateMemberAuthUI();memberMsg('Manager signed in.');}catch(e){memberMsg(e.message);}};
-document.getElementById('memberLogout').onclick=async()=>{await supabaseClient.auth.signOut();memberAuthenticated=false;resetMemberBooking();updateMemberAuthUI();memberMsg('Signed out.');};
+document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;startManagerSessionClock();await checkMemberSession();if(!memberAuthenticated){await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}startManagerSessionClock();updateMemberAuthUI();memberMsg('Manager signed in. Session expires in 10 minutes unless actively typing.');}catch(e){memberMsg(e.message);}};
+document.getElementById('memberLogout').onclick=async()=>{await endManagerSession('Manager signed out.');};
 function clearMemberForm(){editingMemberId=null;['mFirst','mLast','mPhone','mEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('mType').value='Sunset Club';document.getElementById('mStatus').value='active';document.getElementById('memberEditTitle').textContent='Add approved member';}
 document.getElementById('memberClear').onclick=clearMemberForm;
 document.getElementById('memberSearch').oninput=()=>{clearTimeout(memberSearchTimer);const q=document.getElementById('memberSearch').value.trim();if(q.length<2){document.getElementById('memberResults').replaceChildren();return;}memberSearchTimer=setTimeout(async()=>{try{showMatches(document.getElementById('memberResults'),await findMembers(q),m=>{editingMemberId=m.id;document.getElementById('mFirst').value=m.first_name||'';document.getElementById('mLast').value=m.last_name||'';document.getElementById('mPhone').value=m.phone||'';document.getElementById('mEmail').value=m.email||'';document.getElementById('mType').value=m.membership_type||'';document.getElementById('mStatus').value=m.membership_status||'active';document.getElementById('memberEditTitle').textContent='Edit member';memberMsg('Editing selected member.');});}catch(e){memberMsg(e.message);}},250);};
 document.getElementById('memberSave').onclick=async()=>{if(!memberAuthenticated)return memberMsg('Sign in first.');const first_name=document.getElementById('mFirst').value.trim(),last_name=document.getElementById('mLast').value.trim();if(!first_name||!last_name)return memberMsg('First and last name required.');const payload={first_name,last_name,phone:document.getElementById('mPhone').value.trim()||null,email:document.getElementById('mEmail').value.trim()||null,membership_type:document.getElementById('mType').value.trim(),membership_status:document.getElementById('mStatus').value,updated_at:new Date().toISOString()};try{let response;if(editingMemberId){response=await supabaseClient.from('members').update(payload).eq('id',editingMemberId).select('id').single();}else{response=await supabaseClient.from('members').insert({...payload,source:'manual',manually_verified:true}).select('id').single();}if(response.error)throw response.error;clearMemberForm();document.getElementById('memberSearch').value='';document.getElementById('memberResults').replaceChildren();memberMsg('Member saved successfully.');}catch(e){memberMsg('Save failed: '+e.message);}};
-document.getElementById('bookingMemberSearch').oninput=()=>{resetVerifiedSelectionOnly();clearTimeout(memberSearchTimer);const q=document.getElementById('bookingMemberSearch').value.trim();if(q.length<2){document.getElementById('bookingMemberResults').replaceChildren();return;}memberSearchTimer=setTimeout(async()=>{try{showMatches(document.getElementById('bookingMemberResults'),await findMembers(q),m=>{if(String(m.membership_status).toLowerCase()!=='active'){document.getElementById('bookingMemberSelected').textContent='This member is not active.';return;}verifiedBookingMember=m;document.getElementById('fName').value=`${m.first_name} ${m.last_name}`;document.getElementById('fPhone').value=m.phone||'';document.getElementById('bookingMemberSelected').textContent='Active member verified — member rate applied';document.getElementById('bookingMemberResults').replaceChildren();updatePriceLine();});}catch(e){document.getElementById('bookingMemberSelected').textContent='Lookup failed: '+e.message;}},250);};
+document.getElementById('bookingMemberSearch').oninput=()=>{
+  resetVerifiedSelectionOnly();clearTimeout(memberSearchTimer);
+  const q=document.getElementById('bookingMemberSearch').value.trim();
+  if(q.length<2){document.getElementById('bookingMemberResults').replaceChildren();return;}
+  memberSearchTimer=setTimeout(async()=>{
+    try{
+      const matches=await rpc('staff_member_lookup',{p_token:workstationToken,p_search:q});
+      const normalized=(matches||[]).map(m=>({id:m.member_id,first_name:m.first_name,last_name:m.last_name,phone:m.phone,membership_type:m.membership_type,membership_status:'active'}));
+      showMatches(document.getElementById('bookingMemberResults'),normalized,m=>{
+        verifiedBookingMember=m;
+        document.getElementById('fName').value=`${m.first_name} ${m.last_name}`;
+        document.getElementById('fPhone').value=m.phone||'';
+        document.getElementById('bookingMemberSelected').textContent='Active member verified — member rate applied';
+        document.getElementById('bookingMemberResults').replaceChildren();updatePriceLine();
+      });
+    }catch(e){document.getElementById('bookingMemberSelected').textContent='Lookup failed: '+e.message;}
+  },350);
+};
+
+
 function resetVerifiedSelectionOnly(){verifiedBookingMember=null;document.getElementById('bookingMemberSelected').textContent='';updatePriceLine();}
 document.getElementById('fName').addEventListener('input',resetVerifiedSelectionOnly);
 document.getElementById('fPhone').addEventListener('input',resetVerifiedSelectionOnly);
 
 (async function init(){
-await loadSettings();
+await verifyDevice();
+try{await loadSettings();}catch(e){console.error('Settings unavailable',e);}
 await checkMemberSession();
 updateMemberAuthUI();
 await loadReservations();
