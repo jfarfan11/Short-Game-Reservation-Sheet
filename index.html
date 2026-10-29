@@ -371,7 +371,7 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <div class="manager-tools" id="managerTools"><button class="manager-tool-btn" id="membershipToggle" type="button" aria-controls="membershipPanel" aria-expanded="false">Membership Management</button><button class="manager-tool-btn" id="settingsToggle" type="button" aria-controls="settingsPanel" aria-expanded="false">Settings</button></div>
 <div class="panel" id="membershipPanel" style="display:none">
 <h2>Membership Management</h2>
-<p class="member-note">Secure manager sign-in is required. Your existing manager PIN does not grant database access.</p>
+<p class="member-note">Secure manager sign-in is required. Enter your manager email and password to access manager tools.</p>
 <div id="memberLoginArea"><label>Manager email</label><input id="memberEmail" type="email" autocomplete="username" placeholder="Email"><label>Password</label><input id="memberPassword" type="password" autocomplete="current-password" placeholder="Password"><div class="member-actions"><button type="button" id="memberLogin">Sign in</button></div></div>
 <div id="memberAdminArea" style="display:none"><div class="member-actions"><button id="memberLogout" type="button">Sign out of membership</button></div>
 <label>Find member (name, phone, email)</label><input id="memberSearch" placeholder="Search existing members" autocomplete="off"><div class="member-results" id="memberResults"></div>
@@ -401,7 +401,7 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <div style="flex:1;"><label>Admin PIN</label><input id="sAdminPin" maxlength="8"></div>
 </div>
 <button class="primary-btn" id="saveSettingsBtn">Save settings</button>
-<div class="hint">Manager PIN controls the interface only. Changing prices/hours and making instructor bookings require a verified Supabase manager login. PIN changes are disabled in this test build.</div>
+<div class="hint">Changing prices/hours and making instructor bookings require a verified Supabase manager login.</div>
 </div>
 
 <div class="role-footer"><button class="role-pill" id="roleBtn">Front Desk</button></div>
@@ -493,7 +493,7 @@ const DAY_MS = 86400000;
 let state = {
 date: new Date(),
 role: 'front', // 'front' | 'manager'
-settings: { clubName:'Short Game Tee Sheet', memberPrice:5, nonMemberPrice:30, slotStart:7, slotEnd:19, managerPin:'1234', adminPin:'9999', settingsPin:'5125' },
+settings: { clubName:'Short Game Tee Sheet', memberPrice:5, nonMemberPrice:30, slotStart:7, slotEnd:19, managerPin:'', adminPin:'', settingsPin:'' },
 reservations: [],
 editingSlot: null
 };
@@ -522,15 +522,8 @@ return hh+':00 '+ampm;
 }
 
 async function loadSettings(){
-  // Legacy PINs remain in the old settings record during staging.
-  // They are UI-only; database writes require manager authentication.
-  try {
-    const {data,error}=await supabaseClient.from('kv_store').select('value').eq('key','settings').maybeSingle();
-    if(!error&&data?.value){
-      const old=JSON.parse(data.value);
-      for(const key of ['clubName','managerPin','adminPin','settingsPin'])if(old[key]!==undefined)state.settings[key]=old[key];
-    }
-  }catch(e){console.warn('Legacy display settings unavailable',e);}
+  // The legacy kv_store is locked. All booking configuration comes from
+  // protected get_booking_config; manager authorization uses Supabase Auth.
   if(workstationReady){
     const rows=await rpc('get_booking_config',{p_token:workstationToken});
     const cfg=Array.isArray(rows)?rows[0]:rows;
@@ -897,10 +890,17 @@ syncManagerToolButtons();
 }
 
 document.getElementById('roleBtn').onclick = async () => {
-if(state.role==='manager'){ await endManagerSession('Manager signed out.'); return; }
-const pin = await sitePrompt('Enter manager PIN:');
-if(pin === state.settings.managerPin){ startManagerSessionClock(); setRole('manager'); }
-else if(pin!==null){ await siteAlert('Incorrect PIN.'); }
+  if(state.role==='manager'){ await endManagerSession('Manager signed out.'); return; }
+  // Do not rely on the retired public PIN. Authenticate against Supabase instead.
+  const panel=document.getElementById('membershipPanel');
+  panel.style.display='block';
+  document.getElementById('settingsPanel').style.display='none';
+  await checkMemberSession();
+  if(memberAuthenticated){setRole('manager');}
+  updateMemberAuthUI();
+  memberMsg(memberAuthenticated?'Manager signed in.':'Sign in with your manager email and password.');
+  syncManagerToolButtons();
+  panel.scrollIntoView({behavior:'smooth',block:'center'});
 };
 
 document.getElementById('prevDay').onclick = () => { if(reservationBusy)return; reservationLoadToken++; reservationsLoaded=false; state.date = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate()-1); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
@@ -967,13 +967,13 @@ document.getElementById('saveBtn').onclick = saveReservation;
 document.getElementById('closeForm').onclick = () => document.getElementById('bookForm').style.display='none';
 
 document.getElementById('fInstructor').onchange = async function(){
-if(this.checked){
-const pin = await sitePrompt('Enter manager PIN to enable instructor advance booking:');
-if(pin !== state.settings.managerPin){
-if(pin !== null){ await siteAlert('Incorrect PIN.'); }
-this.checked = false;
-}
-}
+  if(this.checked){
+    await checkMemberSession();
+    if(!memberAuthenticated){
+      this.checked=false;
+      await siteAlert('Sign in as an authorized manager first.');
+    }
+  }
 };
 
 function syncManagerToolButtons(){
@@ -983,9 +983,6 @@ function syncManagerToolButtons(){
 document.getElementById('settingsToggle').onclick = async () => {
   const p = document.getElementById('settingsPanel');
   if (p.style.display !== 'none') { p.style.display = 'none'; syncManagerToolButtons(); return; }
-  const entered = await sitePrompt('Enter Settings PIN:');
-  if (entered === null) return;
-  if (entered !== String(state.settings.settingsPin)) { await siteAlert('Incorrect Settings PIN.'); return; }
   await checkMemberSession();
   if(!memberAuthenticated){await siteAlert('Sign in as a manager under Membership Management first.');return;}
   applySettingsToForm();
@@ -1032,7 +1029,7 @@ async function checkMemberSession(){if(managerSessionExpired()){await endManager
 function updateMemberAuthUI(){document.getElementById('memberLoginArea').style.display=memberAuthenticated?'none':'block';document.getElementById('memberAdminArea').style.display=memberAuthenticated?'block':'none';document.getElementById('bookingMemberLookup').style.display=document.getElementById('bookForm').style.display==='none'?'none':'block';}
 document.getElementById('membershipToggle').onclick=async()=>{const panel=document.getElementById('membershipPanel');panel.style.display=panel.style.display==='none'?'block':'none';if(panel.style.display!=='none'){document.getElementById('settingsPanel').style.display='none';await checkMemberSession();updateMemberAuthUI();}syncManagerToolButtons();};
 document.getElementById('memberClose').onclick=()=>{document.getElementById('membershipPanel').style.display='none';syncManagerToolButtons();};
-document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;startManagerSessionClock();await checkMemberSession();if(!memberAuthenticated){await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}startManagerSessionClock();updateMemberAuthUI();memberMsg('Manager signed in. Session expires in 10 minutes unless actively typing.');}catch(e){memberMsg(e.message);}};
+document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;startManagerSessionClock();await checkMemberSession();if(!memberAuthenticated){clearManagerSessionClock();await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}setRole('manager');updateMemberAuthUI();memberMsg('Manager signed in. Session expires in 10 minutes unless actively typing.');}catch(e){memberMsg(e.message);}};
 document.getElementById('memberLogout').onclick=async()=>{await endManagerSession('Manager signed out.');};
 function clearMemberForm(){editingMemberId=null;['mFirst','mLast','mPhone','mEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('mType').value='Sunset Club';document.getElementById('mStatus').value='active';document.getElementById('memberEditTitle').textContent='Add approved member';}
 document.getElementById('memberClear').onclick=clearMemberForm;
@@ -1066,6 +1063,7 @@ document.getElementById('fPhone').addEventListener('input',resetVerifiedSelectio
 await verifyDevice();
 try{await loadSettings();}catch(e){console.error('Settings unavailable',e);}
 await checkMemberSession();
+if(memberAuthenticated)setRole('manager');
 updateMemberAuthUI();
 await loadReservations();
 })();
