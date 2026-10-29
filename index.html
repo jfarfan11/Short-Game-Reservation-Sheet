@@ -465,22 +465,61 @@ async function saveSettings(){
 await window.storage.set('settings', JSON.stringify(state.settings));
 }
 
-async function loadReservations(){
-const sheet = document.getElementById('sheet');
-sheet.innerHTML = '<div style="padding:20px;text-align:center;color:#50534C;">Loading…</div>';
-try{
-const r = await window.storage.get(keyFor(state.date));
-state.reservations = (r && r.value) ? JSON.parse(r.value) : [];
-}catch(e){
-state.reservations = [];
+// Never treat a failed data request as an empty booking sheet.
+let reservationsLoaded = false;
+let reservationLoadToken = 0;
+let reservationBusy = false;
+const waitForRetry = ms => new Promise(resolve => setTimeout(resolve, ms));
+function showReservationError(){
+  const sheet = document.getElementById('sheet');
+  sheet.innerHTML = '<div style="padding:22px;text-align:center;color:#9C4238;line-height:1.6;"><strong>Reservations unavailable</strong><div>Could not connect to the booking database. Availability cannot be confirmed.</div><button type="button" id="retryReservations" style="margin-top:12px;padding:10px 18px;cursor:pointer;">Retry connection</button></div>';
+  document.getElementById('retryReservations').onclick = () => loadReservations();
 }
-renderSheet();
+async function loadReservations({quiet=false}={}){
+  if(reservationBusy) return;
+  const token = ++reservationLoadToken;
+  const requestedKey = keyFor(state.date);
+  if(!quiet) document.getElementById('sheet').innerHTML = '<div style="padding:20px;text-align:center;color:#50534C;">Loading reservations…</div>';
+  let lastError;
+  for(let attempt=0; attempt<3; attempt++){
+    try{
+      // Supabase query runs on each refresh, rather than reading cached bookings.
+      const r = await window.storage.get(requestedKey);
+      const parsed = r && r.value ? JSON.parse(r.value) : [];
+      if(!Array.isArray(parsed)) throw new Error('Invalid reservation data');
+      if(token !== reservationLoadToken || requestedKey !== keyFor(state.date)) return;
+      state.reservations = parsed;
+      reservationsLoaded = true;
+      renderSheet();
+      return;
+    }catch(e){
+      lastError=e;
+      if(attempt<2) await waitForRetry(700*(attempt+1));
+    }
+  }
+  if(token !== reservationLoadToken || requestedKey !== keyFor(state.date)) return;
+  console.error('Could not load reservations:',lastError);
+  reservationsLoaded=false;
+  showReservationError();
 }
-
 async function saveReservationsForDate(){
-await window.storage.set(keyFor(state.date), JSON.stringify(state.reservations));
+  await window.storage.set(keyFor(state.date), JSON.stringify(state.reservations));
 }
-
+// Synchronize when returning to the tab and periodically while idle.
+function refreshReservationsIfIdle(){
+  if(document.hidden || reservationBusy) return;
+  if(document.getElementById('bookForm').style.display !== 'none') return;
+  if(!document.getElementById('customDialog').hidden) return;
+  loadReservations({quiet:reservationsLoaded});
+}
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden) refreshReservationsIfIdle();
+});
+window.addEventListener('focus',refreshReservationsIfIdle);
+window.addEventListener('pageshow',event=>{
+  if(event.persisted) refreshReservationsIfIdle();
+});
+setInterval(refreshReservationsIfIdle,30000);
 
 // Native dialogs can be permanently suppressed in mobile Chrome; use an in-page modal.
 const customDialog=document.getElementById('customDialog');
@@ -621,6 +660,7 @@ sheet.appendChild(row);
 }
 
 function openBookForm(timeStr){
+if(!reservationsLoaded){ showReservationError(); return; }
 // Front desk staff can view other days, but booking them requires a manager.
 if(state.role === 'front' && !sameCalendarDay(state.date, new Date())){
   showBookingNotice();
@@ -645,17 +685,27 @@ document.getElementById('priceLine').textContent = 'Price: $' + price;
 }
 
 async function cancelSlot(timeStr){
-if(state.role !== 'manager'){
-const res = state.reservations.find(r=>r.time===timeStr);
-if(res && res.instructor){
-await siteAlert('Only a manager can cancel an instructor advance booking.');
-return;
-}
+if(reservationBusy) return;
+if(!reservationsLoaded){ showReservationError(); return; }
+const existing = state.reservations.find(r=>r.time===timeStr);
+if(state.role !== 'manager' && existing && existing.instructor){
+  await siteAlert('Only a manager can cancel an instructor advance booking.'); return;
 }
 if(!await siteConfirm('Cancel this reservation?')) return;
-state.reservations = state.reservations.filter(r=>r.time!==timeStr);
-await saveReservationsForDate();
-renderSheet();
+reservationBusy=true;
+try{
+  const r=await window.storage.get(keyFor(state.date));
+  const latest=r&&r.value?JSON.parse(r.value):[];
+  if(!Array.isArray(latest)) throw new Error('Invalid reservation data');
+  const current=latest.find(r=>r.time===timeStr);
+  if(!current){ state.reservations=latest;renderSheet();await siteAlert('This reservation was already removed.');return; }
+  if(state.role!=='manager' && current.instructor){state.reservations=latest;renderSheet();await siteAlert('Only a manager can cancel an instructor advance booking.');return;}
+  const updated=latest.filter(r=>r.time!==timeStr);
+  await window.storage.set(keyFor(state.date),JSON.stringify(updated));
+  state.reservations=updated;
+  renderSheet();
+}catch(e){ console.error(e);reservationsLoaded=false;showReservationError();await siteAlert('Could not confirm or save cancellation. Please retry.'); }
+finally{reservationBusy=false;}
 }
 
 async function saveReservation(){
@@ -677,11 +727,33 @@ return;
 if(diff > 14){ errEl.textContent = 'Reservations can only be made up to two weeks in advance.'; return; }
 
 const price = status==='member' ? state.settings.memberPrice : state.settings.nonMemberPrice;
-state.reservations = state.reservations.filter(r=>r.time!==state.editingSlot);
-state.reservations.push({ time: state.editingSlot, name, phone, status, instructor, price });
-await saveReservationsForDate();
-document.getElementById('bookForm').style.display='none';
-renderSheet();
+if(reservationBusy) return;
+reservationBusy=true;
+try{
+  // Re-read before saving to catch bookings made on other devices.
+  const r=await window.storage.get(keyFor(state.date));
+  const latest=r&&r.value?JSON.parse(r.value):[];
+  if(!Array.isArray(latest)) throw new Error('Invalid reservation data');
+  if(latest.some(r=>r.time===state.editingSlot)){
+    state.reservations=latest;
+    reservationsLoaded=true;
+    document.getElementById('bookForm').style.display='none';
+    renderSheet();
+    await siteAlert('This time was already booked on another device. Please choose another time.');
+    return;
+  }
+  const updated=[...latest,{ time: state.editingSlot, name, phone, status, instructor, price }];
+  await window.storage.set(keyFor(state.date),JSON.stringify(updated));
+  state.reservations=updated;
+  reservationsLoaded=true;
+  document.getElementById('bookForm').style.display='none';
+  renderSheet();
+}catch(e){
+  console.error('Reservation save failed:',e);
+  reservationsLoaded=false;
+  showReservationError();
+  errEl.textContent='Could not verify or save this reservation. Check the connection and retry.';
+}finally{reservationBusy=false;}
 }
 
 function applySettingsToForm(){
@@ -712,13 +784,15 @@ if(pin === state.settings.managerPin){ setRole('manager'); }
 else if(pin!==null){ await siteAlert('Incorrect PIN.'); }
 };
 
-document.getElementById('prevDay').onclick = () => { state.date = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate()-1); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
-document.getElementById('nextDay').onclick = () => { state.date = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate()+1); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
+document.getElementById('prevDay').onclick = () => { if(reservationBusy)return; reservationLoadToken++; reservationsLoaded=false; state.date = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate()-1); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
+document.getElementById('nextDay').onclick = () => { if(reservationBusy)return; reservationLoadToken++; reservationsLoaded=false; state.date = new Date(state.date.getFullYear(), state.date.getMonth(), state.date.getDate()+1); document.getElementById('bookForm').style.display='none'; calendarPopover.hidden=true; loadReservations(); };
 
 const calendarPopover = document.getElementById('calendarPopover');
 let calendarMonth = new Date(state.date.getFullYear(), state.date.getMonth(), 1);
 function sameCalendarDay(a,b){return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate();}
 function selectCalendarDate(d){
+  if(reservationBusy)return;
+  reservationLoadToken++; reservationsLoaded=false;
   state.date = new Date(d.getFullYear(),d.getMonth(),d.getDate());
   calendarPopover.hidden = true;
   document.getElementById('bookForm').style.display='none';
