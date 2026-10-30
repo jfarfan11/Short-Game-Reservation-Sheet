@@ -517,13 +517,21 @@ async function verifyDevice(){
   return workstationReady;
 }
 async function updateCurrentDeviceLabel(){
- const label=document.getElementById('currentDeviceLabel');
- if(!workstationReady){label.textContent='Device: Not Authorized';return;}
- try{
-  // Device listing is available to authenticated managers only; cache the selected UUID/name during authorization.
-  const saved=localStorage.getItem('gr-short-game-device-label-v1');
-  label.textContent='Device: '+(saved||'Authorized PC');
- }catch(e){label.textContent='Device: Authorized PC';}
+  const label=document.getElementById('currentDeviceLabel');
+  if(!workstationReady){label.textContent='Device: Not Authorized';return;}
+  label.textContent='Device: Loading name...';
+  try{
+    const name=await rpc('get_staff_workstation_name',{p_token:workstationToken});
+    if(typeof name==='string' && name.trim()){
+      label.textContent='Device: '+name.trim();
+      localStorage.setItem('gr-short-game-device-label-v1',name.trim());
+    }else{
+      label.textContent='Device: Name unavailable';
+    }
+  }catch(e){
+    console.warn('Could not retrieve device name',e);
+    label.textContent='Device: Name unavailable';
+  }
 }
 // Device authorization uses immutable UUIDs; display names are labels only.
 const workstationNameOrder=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
@@ -656,7 +664,7 @@ function refreshReservationsIfIdle(){
   loadReservations({quiet:reservationsLoaded});
 }
 document.addEventListener('visibilitychange',()=>{
-  if(!document.hidden) refreshReservationsIfIdle();
+  if(!document.hidden){ refreshReservationsIfIdle(); if(workstationReady)updateCurrentDeviceLabel(); }
 });
 window.addEventListener('focus',refreshReservationsIfIdle);
 window.addEventListener('pageshow',event=>{
