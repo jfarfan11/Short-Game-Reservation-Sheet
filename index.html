@@ -388,7 +388,7 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <button class="primary-btn" id="saveBtn">Save Reservation</button>
 </div>
 
-<div class="manager-tools" id="managerTools"><button class="manager-tool-btn" id="membershipToggle" type="button" aria-controls="membershipPanel" aria-expanded="false">Membership Management</button><button class="manager-tool-btn" id="settingsToggle" type="button" aria-controls="settingsPanel" aria-expanded="false">Settings</button></div>
+<div class="manager-tools" id="managerTools"><button class="manager-tool-btn" id="membershipToggle" type="button" aria-controls="membershipPanel" aria-expanded="false">Membership Management</button><button class="manager-tool-btn" id="settingsToggle" type="button" aria-controls="settingsPanel" aria-expanded="false">Settings</button><button class="manager-tool-btn" id="managerSignOut" type="button" style="grid-column:1/-1;background:#F1EAF0;color:#203F20;border-color:#F1EAF0">Sign Out</button></div>
 <div class="panel" id="membershipPanel" style="display:none">
 <h2>Membership Management</h2>
 <p class="member-note">Sign in with your personal 4-digit PIN, or use email and password.</p>
@@ -1349,6 +1349,7 @@ document.getElementById('membershipToggle').onclick=async()=>{const panel=docume
 document.getElementById('memberClose').onclick=()=>{document.getElementById('membershipPanel').style.display='none';syncManagerToolButtons();};
 document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;startManagerSessionClock();await checkMemberSession();if(!memberAuthenticated){clearManagerSessionClock();await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}setRole('manager');updateMemberAuthUI();memberMsg('Manager signed in. Session expires in 5 minutes unless actively typing.');await showFirstPinSetupIfNeeded();}catch(e){memberMsg(e.message);}};
 document.getElementById('memberLogout').onclick=async()=>{await endManagerSession('Manager signed out.');};
+document.getElementById('managerSignOut').onclick=async()=>{await endManagerSession('Manager signed out.');};
 document.getElementById('saveMyManagerPin').onclick=async()=>{
   const btn=document.getElementById('saveMyManagerPin');
   const msg=document.getElementById('myManagerPinMessage');
