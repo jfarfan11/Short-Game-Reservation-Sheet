@@ -176,12 +176,13 @@ width:100%;
 padding:9px 10px;
 border-radius:3px;
 border:1px solid var(--line);
-background:var(--green-deep);
-color:var(--cream);
+background:#527B56;
+color:#FFFFFF;
 font-family:var(--brand-font);
 font-size:14px;
 }
-input::placeholder{color:#F0F5EE;opacity:1;}
+input::placeholder{color:#F4FFF1;opacity:1;}
+input:focus,select:focus{border-color:#EAF5E6;outline:2px solid rgba(234,245,230,.35);outline-offset:1px;}
 .check{display:flex;align-items:center;gap:8px;font-size:13px;margin:10px 0;color:var(--sage);}
 .check input{width:auto;}
 .primary-btn{
@@ -332,7 +333,7 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <h2>Authorize this device</h2>
 <p class="hint">This browser must be approved once by an authorized manager before it can access reservations. Authorization is saved in this browser only.</p>
 <div id="workstationStatus" class="hint" role="status"></div>
-<div class="row"><div style="flex:1;"><label>Device name</label><select id="workstationName"></select></div></div>
+<div class="row"><div style="flex:1;"><label for="workstationSelect">Device</label><select id="workstationSelect"><option value="">Sign in to load available devices</option></select><p class="hint">Sign in with a manager account to load current device names. Renaming a device will not change its identity.</p></div></div>
 <div class="row"><div style="flex:1;"><label>Manager email</label><input id="deviceEmail" type="email" autocomplete="username"></div></div>
 <div class="row"><div style="flex:1;"><label>Manager password</label><input id="devicePassword" type="password" autocomplete="current-password"></div></div>
 <button class="primary-btn" id="authorizeDevice" type="button">Authorize this browser</button>
@@ -372,16 +373,9 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <div class="manager-tools" id="managerTools"><button class="manager-tool-btn" id="membershipToggle" type="button" aria-controls="membershipPanel" aria-expanded="false">Membership Management</button><button class="manager-tool-btn" id="settingsToggle" type="button" aria-controls="settingsPanel" aria-expanded="false">Settings</button></div>
 <div class="panel" id="membershipPanel" style="display:none">
 <h2>Membership Management</h2>
-<p class="member-note">Secure manager sign-in is required. Enter your manager email and password to access manager tools.</p>
-<div id="memberLoginArea"><label>Manager email</label><input id="memberEmail" type="email" autocomplete="username" placeholder="Email"><label>Password</label><input id="memberPassword" type="password" autocomplete="current-password" placeholder="Password"><div class="member-actions"><button type="button" id="memberLogin">Sign in</button></div></div>
+<p class="member-note">Sign in with your personal 4-digit PIN, or use email and password.</p>
+<div id="memberLoginArea"><div class="panel" style="margin:0 0 14px;padding:13px"><h3 style="margin:0 0 10px">Manager PIN sign-in</h3><label for="pinManagerSelect">Manager</label><select id="pinManagerSelect"><option value="">Loading managers...</option></select><label for="pinLoginValue" style="display:block;margin-top:10px">4-digit PIN</label><input id="pinLoginValue" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="Enter your PIN"><button class="primary-btn" type="button" id="pinLoginBtn">Sign in with PIN</button><div class="member-note" id="pinLoginMessage" role="status"></div></div><details><summary style="cursor:pointer">Sign in with email and password instead</summary><div style="padding-top:10px"><label>Manager email</label><input id="memberEmail" type="email" autocomplete="username" placeholder="Email"><label>Password</label><input id="memberPassword" type="password" autocomplete="current-password" placeholder="Password"><div class="member-actions"><button type="button" id="memberLogin">Sign in</button></div></div></details></div>
 <div id="memberAdminArea" style="display:none"><div class="member-actions"><button id="memberLogout" type="button">Sign out of membership</button></div>
-<div class="panel" style="margin:10px 0 18px;padding:14px;">
-<h3 style="margin:0 0 8px;font-size:16px;">My manager PIN</h3>
-<p class="member-note">Set or change your personal 4-digit PIN. Your current email/password login remains available.</p>
-<div class="row"><div style="flex:1"><label for="myManagerPin">New 4-digit PIN</label><input id="myManagerPin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4 digits"></div><div style="flex:1"><label for="myManagerPinConfirm">Confirm PIN</label><input id="myManagerPinConfirm" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="Repeat PIN"></div></div>
-<button class="primary-btn" id="saveMyManagerPin" type="button">Set My 4-Digit PIN</button>
-<div class="member-note" id="myManagerPinMessage" role="status"></div>
-</div>
 <label>Find member (name, phone, email)</label><input id="memberSearch" placeholder="Search existing members" autocomplete="off"><div class="member-results" id="memberResults"></div>
 <h3 id="memberEditTitle">Add approved member</h3><div class="member-form-grid">
 <div><label>First name</label><input id="mFirst"></div><div><label>Last name</label><input id="mLast"></div><div><label>Phone</label><input id="mPhone" type="tel"></div><div><label>Email (optional)</label><input id="mEmail" type="email"></div><div><label>Membership type</label><input id="mType" value="Sunset Club"></div><div><label>Status</label><select id="mStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div>
@@ -404,14 +398,59 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <div style="flex:1;"><label>Open hour (24h)</label><input id="sSlotStart" type="number" min="0" max="23"></div>
 <div style="flex:1;"><label>Close hour (24h)</label><input id="sSlotEnd" type="number" min="1" max="24"></div>
 </div>
+<div class="panel" id="managerPinSettings" style="margin:16px 0;padding:14px;display:none;">
+<h3 style="margin:0 0 8px;font-size:16px;">Change my manager PIN</h3>
+<div>
+
+<p class="member-note">Set or change your personal 4-digit PIN. Your current email/password login remains available.</p>
+<div class="row"><div style="flex:1"><label for="myManagerPin">New 4-digit PIN</label><input id="myManagerPin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4 digits"></div><div style="flex:1"><label for="myManagerPinConfirm">Confirm PIN</label><input id="myManagerPinConfirm" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="Repeat PIN"></div></div>
+<button class="primary-btn" id="saveMyManagerPin" type="button">Set My 4-Digit PIN</button>
+<div class="member-note" id="myManagerPinMessage" role="status"></div>
+</div>
+</div>
+<button type="button" id="toggleManagerPinSettings" class="settings-toggle" style="margin:16px 0 8px">Change my manager PIN</button>
 <div class="row" id="legacyPinSettings" style="display:none">
 <div style="flex:1;"><label>Manager PIN</label><input id="sPin" maxlength="8"></div>
 <div style="flex:1;"><label>Admin PIN</label><input id="sAdminPin" maxlength="8"></div>
+</div>
+<div class="panel" id="managerAdminPanel" style="display:none;margin:18px 0;padding:14px">
+<h3 style="margin:0 0 8px">Manage Managers</h3>
+<p class="hint">Administrator only. Invite new managers or disable and reactivate existing accounts.</p>
+<div class="panel" style="margin:12px 0;padding:12px">
+<h4 style="margin:0 0 10px">Invite a manager</h4>
+<div class="row"><div style="flex:1"><label for="inviteManagerName">Full name</label><input id="inviteManagerName" autocomplete="name" placeholder="First and last name"></div></div>
+<div class="row"><div style="flex:1"><label for="inviteManagerEmail">Work email</label><input id="inviteManagerEmail" type="email" autocomplete="off" placeholder="manager@example.com"></div></div>
+<button type="button" id="sendManagerInvite" class="primary-btn">Send invitation</button>
+<div id="inviteManagerMessage" class="member-note" role="status"></div>
+</div>
+<div id="managerAdminList" class="member-results"></div>
+<div id="managerAdminMessage" class="member-note" role="status"></div>
+<button type="button" id="refreshManagerAdmin" class="primary-btn">Refresh managers</button>
+</div>
+<div class="panel" id="deviceAdminPanel" style="display:none;margin:18px 0;padding:14px">
+<h3 style="margin:0 0 8px">Manage Devices</h3>
+<p class="hint">Administrator only. Rename computers and phones without changing their authorization. Names must be unique, including inactive devices.</p>
+<label style="display:flex;align-items:center;gap:9px;margin:12px 0"><input type="checkbox" id="showInactiveDevices" style="width:auto"> Show inactive devices</label>
+<div id="deviceAdminList" class="member-results"></div>
+<div id="deviceAdminMessage" class="member-note" role="status"></div>
+<button type="button" id="refreshDeviceAdmin" class="primary-btn">Refresh devices</button>
 </div>
 <button class="primary-btn" id="saveSettingsBtn">Save settings</button>
 <div class="hint">Changing prices/hours and making instructor bookings require a verified Supabase manager login.</div>
 </div>
 
+<div class="custom-dialog-backdrop" id="firstPinSetup" hidden style="z-index:9998;">
+<div class="custom-dialog" style="width:min(100%,440px);text-align:left;">
+<h2 style="margin:0 0 8px">Set up your manager PIN</h2>
+<p style="font-size:15px;line-height:1.5">Welcome! Before using manager tools, create your personal 4-digit PIN. You can change it later in Settings.</p>
+<label for="firstPinValue">New 4-digit PIN</label>
+<input id="firstPinValue" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="4 digits" style="margin:6px 0 12px">
+<label for="firstPinConfirm">Confirm PIN</label>
+<input id="firstPinConfirm" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="Repeat PIN" style="margin:6px 0 12px">
+<div id="firstPinMessage" class="member-note" role="status"></div>
+<button type="button" id="firstPinSave" class="primary-btn">Save my PIN</button>
+<button type="button" id="firstPinSignOut" class="settings-toggle" style="color:var(--cream);margin:14px 0 0">Sign out instead</button>
+</div></div>
 <div class="role-footer"><button class="role-pill" id="roleBtn">Front Desk</button></div>
 </div>
 
@@ -444,6 +483,7 @@ const supabaseClient = supabase.createClient(
 
 const WORKSTATION_KEY = 'gr-short-game-workstation-v1';
 const MANAGER_SESSION_KEY = 'gr-short-game-manager-session-start-v1';
+const MANAGER_PIN_FUNCTION = 'short-game-pin-login';
 const MANAGER_MAX_MS = 5 * 60 * 1000;
 const MANAGER_TYPING_GRACE_MS = 60 * 1000;
 let workstationToken = localStorage.getItem(WORKSTATION_KEY) || '';
@@ -465,12 +505,18 @@ async function verifyDevice(){
   document.getElementById('workstationPanel').style.display=workstationReady?'none':'block';
   return workstationReady;
 }
-function workstationOptions(){
-  const select=document.getElementById('workstationName');
-  for(let i=1;i<=10;i++){const o=document.createElement('option');o.value=o.textContent='Golf Shop PC '+i;select.appendChild(o);}
-  for(let i=1;i<=5;i++){const o=document.createElement('option');o.value=o.textContent='Manager Device '+i;select.appendChild(o);}
+// Device authorization uses immutable UUIDs; display names are labels only.
+const workstationNameOrder=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+async function loadWorkstationChoices(){
+  const select=document.getElementById('workstationSelect');
+  const devices=await rpc('list_staff_workstations_for_authorization');
+  const old=select.value;
+  select.replaceChildren(new Option('Select this device',''));
+  const sorted=[...(devices||[])].sort((a,b)=>workstationNameOrder.compare(a.workstation_name||'',b.workstation_name||''));
+  for(const device of sorted)select.add(new Option(device.workstation_name||'Unnamed device',device.id));
+  if([...select.options].some(option=>option.value===old))select.value=old;
 }
-workstationOptions();
+
 document.getElementById('authorizeDevice').onclick=async()=>{
   const status=document.getElementById('workstationStatus');
   const btn=document.getElementById('authorizeDevice');
@@ -484,7 +530,14 @@ document.getElementById('authorizeDevice').onclick=async()=>{
     if(error)throw error;
     const ok=await rpc('is_membership_manager');
     if(ok!==true)throw new Error('This account is not authorized as a manager.');
-    const token=await rpc('authorize_staff_workstation',{p_workstation_name:document.getElementById('workstationName').value});
+    await loadWorkstationChoices();
+    const select=document.getElementById('workstationSelect');
+    const deviceId=select.value;
+    if(!deviceId){
+      status.textContent='Manager verified. Select this device from the list, then click Authorize this browser again.';
+      return;
+    }
+    const token=await rpc('authorize_staff_workstation_by_id',{p_workstation_id:deviceId});
     if(typeof token!=='string'||!/^[a-f0-9]{64}$/i.test(token))throw new Error('Unexpected authorization response.');
     workstationToken=token;
     localStorage.setItem(WORKSTATION_KEY,token);
@@ -492,8 +545,8 @@ document.getElementById('authorizeDevice').onclick=async()=>{
     await supabaseClient.auth.signOut();
     memberAuthenticated=false;updateMemberAuthUI();
     status.textContent='Browser authorized.';
-    await loadSettings();await loadReservations();
-  }catch(e){status.textContent='Authorization failed: '+e.message;}
+    await loadSettings();await loadReservations();await refreshPinManagerList();
+  }catch(e){status.textContent='Authorization failed: '+e.message;await supabaseClient.auth.signOut().catch(()=>{});}
   finally{btn.disabled=false;}
 };
 
@@ -623,7 +676,16 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&!customDialog.hidden){e.preventDefault();finishSiteDialog(null);}
 });
 const siteAlert=message=>siteDialog(message,'alert');
-const sitePrompt=message=>siteDialog(message,'prompt');
+const sitePrompt=(message,defaultValue='')=>{
+  const result=siteDialog(message,'prompt');
+  const field=document.getElementById('customDialogInput');
+  field.type='text';
+  field.removeAttribute('inputmode');
+  field.setAttribute('aria-label','Device name');
+  field.value=defaultValue;
+  field.select();
+  return result;
+};
 const siteConfirm=async message=>(await siteDialog(message,'confirm'))===true;
 
 // Sunrise and sunset at Green River Golf Club, Corona, California.
@@ -906,7 +968,8 @@ document.getElementById('roleBtn').onclick = async () => {
   await checkMemberSession();
   if(memberAuthenticated){setRole('manager');}
   updateMemberAuthUI();
-  memberMsg(memberAuthenticated?'Manager signed in.':'Sign in with your manager email and password.');
+  memberMsg(memberAuthenticated?'Manager signed in.':'Choose your name and enter your PIN, or sign in with email and password.');
+   if(!memberAuthenticated)await refreshPinManagerList();
   syncManagerToolButtons();
   panel.scrollIntoView({behavior:'smooth',block:'center'});
 };
@@ -995,6 +1058,8 @@ document.getElementById('settingsToggle').onclick = async () => {
   if(!memberAuthenticated){await siteAlert('Sign in as a manager under Membership Management first.');return;}
   applySettingsToForm();
   p.style.display = 'block';
+   await loadManagerAdminPanel();
+   await loadDeviceAdminPanel();
   document.getElementById('membershipPanel').style.display='none';
   syncManagerToolButtons();
 };
@@ -1020,6 +1085,154 @@ document.getElementById('saveSettingsBtn').onclick=async()=>{
 };
 
 
+// Server-side admin RPCs enforce permissions; hiding this panel is not the security boundary.
+async function loadManagerAdminPanel(){
+  const panel=document.getElementById('managerAdminPanel');
+  const target=document.getElementById('managerAdminList');
+  const status=document.getElementById('managerAdminMessage');
+  panel.style.display='none';target.replaceChildren();status.textContent='';
+  try {
+    await checkMemberSession();
+    if(!memberAuthenticated)return;
+    const admin=await rpc('is_short_game_admin');
+    if(admin!==true)return;
+    panel.style.display='block';status.textContent='Loading managers...';
+    const managers=await rpc('list_short_game_managers_admin');
+    target.replaceChildren();
+    for(const m of managers||[]){
+      const row=document.createElement('div');row.className='member-result';
+      row.style.cursor='default';
+      const name=document.createElement('div');name.style.fontWeight='bold';name.textContent=m.display_name+(m.is_admin?' (Administrator)':'');
+      const detail=document.createElement('div');detail.className='member-note';
+      detail.textContent=(m.is_active?'Active':'Disabled')+' · '+(m.invite_accepted?'Invitation accepted':'Invitation pending');
+      row.append(name,detail);
+      if(!m.is_admin){
+        const button=document.createElement('button');button.type='button';
+        button.textContent=m.is_active?'Disable access':'Reactivate access';
+        button.style.cssText='margin-top:7px;padding:8px 12px;background:#F1EAF0;color:#203F20;border:0;border-radius:4px;cursor:pointer';
+        button.onclick=async()=>{
+          const next=!m.is_active;
+          if(!await siteConfirm((next?'Reactivate ':'Disable ')+m.display_name+'?'))return;
+          button.disabled=true;
+          try{await checkMemberSession();if(!memberAuthenticated)throw new Error('Manager session expired');
+            await rpc('set_short_game_manager_active_admin',{p_user_id:m.user_id,p_active:next});
+            await loadManagerAdminPanel();
+          }catch(e){status.textContent='Update failed: '+e.message;button.disabled=false;}
+        };
+        row.appendChild(button);
+      }
+      target.appendChild(row);
+    }
+    status.textContent='';
+  }catch(e){panel.style.display='block';status.textContent='Could not load manager controls: '+e.message;}
+}
+// All device operations are enforced by administrator-only Supabase RPCs.
+let deviceAdminCache=[];
+function renderDeviceAdminList(){
+  const target=document.getElementById('deviceAdminList');
+  target.replaceChildren();
+  const showInactive=document.getElementById('showInactiveDevices').checked;
+  // Natural name order: names starting with numbers first (1, 2, 10),
+  // followed by A-Z names, with embedded numbers sorted numerically (PC 2 before PC 10).
+  const nameOrder=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
+  const devices=deviceAdminCache.filter(d=>showInactive||d.is_active).sort((a,b)=>{
+    const an=(a.workstation_name||'').trim();
+    const bn=(b.workstation_name||'').trim();
+    const aStartsNumber=/^\d/.test(an);
+    const bStartsNumber=/^\d/.test(bn);
+    if(aStartsNumber!==bStartsNumber)return aStartsNumber?-1:1;
+    return nameOrder.compare(an,bn);
+  });
+  if(!devices.length){const p=document.createElement('p');p.className='member-note';p.textContent='No devices in this view.';target.appendChild(p);return;}
+  for(const d of devices){
+    const card=document.createElement('div');card.className='member-result';card.style.cursor='default';
+    const name=document.createElement('div');name.style.fontWeight='bold';name.textContent=d.workstation_name||'Unnamed device';
+    const info=document.createElement('div');info.className='member-note';info.textContent=(d.is_active?'Active':'Inactive')+' · ID: '+d.id;
+    const actions=document.createElement('div');actions.style.cssText='display:flex;flex-wrap:wrap;gap:8px;margin-top:9px';
+    const rename=document.createElement('button');rename.type='button';rename.textContent='Rename';
+    const toggle=document.createElement('button');toggle.type='button';toggle.textContent=d.is_active?'Disable access':'Reactivate access';
+    for(const b of [rename,toggle])b.style.cssText='padding:9px 12px;background:#F1EAF0;color:#203F20;border:0;border-radius:5px;cursor:pointer';
+    rename.onclick=async()=>{
+      const next=await sitePrompt('New name for '+(d.workstation_name||'this device')+':',d.workstation_name||'');
+      if(next===null)return;
+      const trimmed=next.trim();if(!trimmed||trimmed.length>80){await siteAlert('Enter a name between 1 and 80 characters.');return;}
+      if(trimmed===d.workstation_name)return;
+      rename.disabled=true;
+      const status=document.getElementById('deviceAdminMessage');
+      status.textContent='Checking device name...';
+      try{
+        await checkMemberSession();
+        if(!memberAuthenticated)throw new Error('Manager session expired');
+        // Include inactive devices in the uniqueness check.
+        const latest=await rpc('admin_list_short_game_devices')||[];
+        const duplicate=latest.find(other=>other.id!==d.id&&String(other.workstation_name||'').trim().toLowerCase()===trimmed.toLowerCase());
+        if(duplicate)throw new Error('That name already belongs to '+(duplicate.is_active?'an active':'an inactive')+' device. Choose a different name or rename the existing device first.');
+        status.textContent='Saving device name...';
+        await rpc('admin_update_short_game_device',{p_device_id:d.id,p_name:trimmed});
+        await loadDeviceAdminPanel();
+        document.getElementById('deviceAdminMessage').textContent='Device renamed to '+trimmed+'. Authorization is unchanged.';
+      }catch(e){
+        const duplicateError=e.code==='23505'||/duplicate key|unique constraint/i.test(e.message||'');
+        status.textContent='Could not rename device: '+(duplicateError?'That name is already used by another device, including possibly an inactive device.':e.message);
+      }finally{rename.disabled=false;}
+    };
+    toggle.onclick=async()=>{
+      const next=!d.is_active;
+      if(!await siteConfirm((next?'Reactivate ':'Disable ')+(d.workstation_name||'this device')+'?'))return;
+      toggle.disabled=true;
+      try{await checkMemberSession();if(!memberAuthenticated)throw new Error('Manager session expired');
+        await rpc('admin_update_short_game_device',{p_device_id:d.id,p_is_active:next});
+        await loadDeviceAdminPanel();
+      }catch(e){document.getElementById('deviceAdminMessage').textContent='Could not update device: '+e.message;toggle.disabled=false;}
+    };
+    actions.append(rename,toggle);card.append(name,info,actions);target.appendChild(card);
+  }
+}
+async function loadDeviceAdminPanel(){
+  const panel=document.getElementById('deviceAdminPanel');
+  const status=document.getElementById('deviceAdminMessage');
+  panel.style.display='none';status.textContent='';
+  try{
+    await checkMemberSession();if(!memberAuthenticated)return;
+    if(await rpc('is_short_game_admin')!==true)return;
+    panel.style.display='block';status.textContent='Loading devices...';
+    deviceAdminCache=await rpc('admin_list_short_game_devices')||[];
+    renderDeviceAdminList();status.textContent='';
+  }catch(e){panel.style.display='block';status.textContent='Could not load devices: '+e.message;}
+}
+document.getElementById('showInactiveDevices').onchange=renderDeviceAdminList;
+document.getElementById('refreshDeviceAdmin').onclick=loadDeviceAdminPanel;
+
+document.getElementById('sendManagerInvite').onclick=async()=>{
+  const button=document.getElementById('sendManagerInvite');
+  const message=document.getElementById('inviteManagerMessage');
+  const name=document.getElementById('inviteManagerName').value.trim();
+  const email=document.getElementById('inviteManagerEmail').value.trim().toLowerCase();
+  if(name.length<2 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    message.textContent='Enter the manager’s full name and a valid email address.';return;
+  }
+  await checkMemberSession();
+  if(!memberAuthenticated){message.textContent='Manager session expired. Sign in again.';return;}
+  if(!await siteConfirm('Send a manager invitation to '+email+'?'))return;
+  button.disabled=true;message.textContent='Sending invitation...';
+  try{
+    const {data,error}=await supabaseClient.functions.invoke('short-game-invite-manager',{body:{name,email}});
+    if(error){
+      let detail='Invitation request failed.';
+      try{const response=error.context;if(response?.json){const payload=await response.json();detail=payload.error||detail;}}catch(_){}
+      throw new Error(detail);
+    }
+    if(!data?.success)throw new Error(data?.error||'Invitation was not confirmed.');
+    message.textContent='Invitation sent to '+email+'.';
+    document.getElementById('inviteManagerName').value='';
+    document.getElementById('inviteManagerEmail').value='';
+    await loadManagerAdminPanel();
+    message.textContent='Invitation sent to '+email+'.';
+  }catch(e){message.textContent='Could not invite manager: '+e.message;}
+  finally{button.disabled=false;}
+};
+document.getElementById('refreshManagerAdmin').onclick=loadManagerAdminPanel;
+
 // Protected membership operations: only authenticated, authorized managers can query the roster.
 let memberAuthenticated=false;
 function resetMemberBooking(){verifiedBookingMember=null;document.getElementById('fStatus').value='nonmember';document.getElementById('fStatusDisplay').value='Non-member (default)';document.getElementById('bookingMemberSearch').value='';document.getElementById('bookingMemberResults').replaceChildren();document.getElementById('bookingMemberSelected').textContent='';updatePriceLine();}
@@ -1034,10 +1247,41 @@ async function findMembers(q){
 }
 function showMatches(target,members,onPick){target.replaceChildren();if(!members.length){target.textContent='No matching members found.';return;}members.forEach(m=>{const b=document.createElement('button');b.type='button';b.className='member-result';b.textContent=`${m.first_name} ${m.last_name} · ${m.phone||'No phone'} · ${m.membership_status||'Unknown'} · ${m.membership_type||''}`;b.onclick=()=>onPick(m);target.appendChild(b);});}
 async function checkMemberSession(){if(managerSessionExpired()){await endManagerSession();return;}const {data}=await supabaseClient.auth.getSession();if(!data?.session){memberAuthenticated=false;return;}if(!managerSessionStart()){memberAuthenticated=false;await supabaseClient.auth.signOut();return;}const {data:ok,error}=await supabaseClient.rpc('is_membership_manager');memberAuthenticated=!error && ok===true;}
+async function refreshPinManagerList(){
+  const select=document.getElementById('pinManagerSelect');
+  if(!workstationReady){select.replaceChildren(new Option('Authorize this browser first',''));return;}
+  try{
+    const {data,error}=await supabaseClient.functions.invoke(MANAGER_PIN_FUNCTION,{body:{action:'list',workstation_token:workstationToken}});
+    if(error||!Array.isArray(data?.managers))throw new Error('Manager list unavailable');
+    const old=select.value;select.replaceChildren(new Option('Select manager',''));
+    for(const manager of data.managers)select.add(new Option(manager.display_name,manager.user_id));
+    if([...select.options].some(o=>o.value===old))select.value=old;
+  }catch(e){select.replaceChildren(new Option('Manager list unavailable',''));console.warn(e);}
+}
+document.getElementById('pinLoginBtn').onclick=async()=>{
+  const btn=document.getElementById('pinLoginBtn');
+  const message=document.getElementById('pinLoginMessage');
+  const user_id=document.getElementById('pinManagerSelect').value;
+  const pin=document.getElementById('pinLoginValue').value;
+  if(!user_id||!/^[0-9]{4}$/.test(pin)){message.textContent='Select your name and enter a 4-digit PIN.';return;}
+  btn.disabled=true;message.textContent='Signing in...';
+  try{
+    if(!workstationReady)throw new Error('Authorize this browser first.');
+    const {data,error}=await supabaseClient.functions.invoke(MANAGER_PIN_FUNCTION,{body:{action:'login',user_id,pin,workstation_token:workstationToken}});
+    document.getElementById('pinLoginValue').value='';
+    if(error||!data?.token_hash)throw new Error('Incorrect PIN, account locked, or sign-in unavailable.');
+    const result=await supabaseClient.auth.verifyOtp({token_hash:data.token_hash,type:'magiclink'});
+    if(result.error)throw result.error;
+    startManagerSessionClock();await checkMemberSession();
+    if(!memberAuthenticated){clearManagerSessionClock();await supabaseClient.auth.signOut();throw new Error('Manager access not available.');}
+    setRole('manager');updateMemberAuthUI();memberMsg('Manager signed in. Session expires after 5 minutes unless actively typing.');await showFirstPinSetupIfNeeded();
+  }catch(e){message.textContent=e.message;}
+  finally{btn.disabled=false;}
+};
 function updateMemberAuthUI(){document.getElementById('memberLoginArea').style.display=memberAuthenticated?'none':'block';document.getElementById('memberAdminArea').style.display=memberAuthenticated?'block':'none';document.getElementById('bookingMemberLookup').style.display=document.getElementById('bookForm').style.display==='none'?'none':'block';}
 document.getElementById('membershipToggle').onclick=async()=>{const panel=document.getElementById('membershipPanel');panel.style.display=panel.style.display==='none'?'block':'none';if(panel.style.display!=='none'){document.getElementById('settingsPanel').style.display='none';await checkMemberSession();updateMemberAuthUI();}syncManagerToolButtons();};
 document.getElementById('memberClose').onclick=()=>{document.getElementById('membershipPanel').style.display='none';syncManagerToolButtons();};
-document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;startManagerSessionClock();await checkMemberSession();if(!memberAuthenticated){clearManagerSessionClock();await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}setRole('manager');updateMemberAuthUI();memberMsg('Manager signed in. Session expires in 5 minutes unless actively typing.');}catch(e){memberMsg(e.message);}};
+document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;startManagerSessionClock();await checkMemberSession();if(!memberAuthenticated){clearManagerSessionClock();await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}setRole('manager');updateMemberAuthUI();memberMsg('Manager signed in. Session expires in 5 minutes unless actively typing.');await showFirstPinSetupIfNeeded();}catch(e){memberMsg(e.message);}};
 document.getElementById('memberLogout').onclick=async()=>{await endManagerSession('Manager signed out.');};
 document.getElementById('saveMyManagerPin').onclick=async()=>{
   const btn=document.getElementById('saveMyManagerPin');
@@ -1054,6 +1298,48 @@ document.getElementById('saveMyManagerPin').onclick=async()=>{
     document.getElementById('myManagerPin').value='';
     document.getElementById('myManagerPinConfirm').value='';
     msg.textContent='Your manager PIN was saved.';
+  }catch(e){msg.textContent='Could not save PIN: '+e.message;}
+  finally{btn.disabled=false;}
+};
+
+
+// The PIN-status RPC is read-only and checks the currently authenticated user.
+async function showFirstPinSetupIfNeeded(){
+  if(!memberAuthenticated)return;
+  try{
+    const {data,error}=await supabaseClient.rpc('has_my_short_game_pin');
+    if(error)throw error;
+    document.getElementById('firstPinSetup').hidden=(data===true);
+  }catch(e){
+    console.warn('Could not check manager PIN setup',e);
+    // Do not force a setup screen if the status service is unavailable.
+    memberMsg('Could not check PIN setup status. Contact the administrator if you have not set a PIN.');
+  }
+}
+document.getElementById('toggleManagerPinSettings').onclick=()=>{
+  const p=document.getElementById('managerPinSettings');
+  p.style.display=p.style.display==='none'?'block':'none';
+};
+document.getElementById('firstPinSignOut').onclick=async()=>{
+  document.getElementById('firstPinSetup').hidden=true;
+  await endManagerSession('Manager signed out.');
+};
+document.getElementById('firstPinSave').onclick=async()=>{
+  const btn=document.getElementById('firstPinSave');
+  const msg=document.getElementById('firstPinMessage');
+  const pin=document.getElementById('firstPinValue').value;
+  const confirm=document.getElementById('firstPinConfirm').value;
+  if(!/^[0-9]{4}$/.test(pin)){msg.textContent='Enter exactly four digits.';return;}
+  if(pin!==confirm){msg.textContent='PINs do not match.';return;}
+  btn.disabled=true;msg.textContent='Saving PIN...';
+  try{
+    await checkMemberSession();
+    if(!memberAuthenticated)throw new Error('Your session expired. Please sign in again.');
+    await rpc('set_my_short_game_pin',{p_pin:pin});
+    document.getElementById('firstPinValue').value='';
+    document.getElementById('firstPinConfirm').value='';
+    document.getElementById('firstPinSetup').hidden=true;
+    memberMsg('Your manager PIN is ready. You can change it in Settings.');
   }catch(e){msg.textContent='Could not save PIN: '+e.message;}
   finally{btn.disabled=false;}
 };
@@ -1090,9 +1376,10 @@ document.getElementById('fPhone').addEventListener('input',resetVerifiedSelectio
 await verifyDevice();
 try{await loadSettings();}catch(e){console.error('Settings unavailable',e);}
 await checkMemberSession();
-if(memberAuthenticated)setRole('manager');
+if(memberAuthenticated){setRole('manager');await showFirstPinSetupIfNeeded();}
 updateMemberAuthUI();
 await loadReservations();
+await refreshPinManagerList();
 })();
 </script>
 </body>
