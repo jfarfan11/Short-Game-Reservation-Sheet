@@ -290,6 +290,15 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 .manager-tools .manager-tool-btn:hover,.manager-tools .manager-tool-btn:focus-visible{background:#356434;border-color:var(--cream);outline-offset:2px}
 .manager-tools .manager-tool-btn[aria-expanded="true"]{background:var(--cream);color:var(--ink);border-color:var(--cream)}
 @media(max-width:420px){.manager-tools{gap:8px}.manager-tools .manager-tool-btn{font-size:13px;padding:10px 6px}}
+/* Compact icon-centered solar halos */
+.sunitem::before{inset:auto;top:4px;left:50%;transform:translateX(-50%);width:94px;height:54px;border-radius:50%;}
+.sunitem:first-child::before{background:radial-gradient(ellipse at center,rgba(255,177,28,.27),rgba(255,191,47,.10) 43%,transparent 75%);}
+.sunitem:last-child::before{background:radial-gradient(ellipse at center,rgba(117,55,255,.29),rgba(54,91,255,.12) 43%,transparent 75%);}
+.settings-tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin:0 0 15px;}
+.settings-tab{padding:11px 5px;background:#203F20;color:#FAF7F8;border:1px solid var(--line);border-radius:4px;font:600 14px var(--brand-font);cursor:pointer;}
+.settings-tab[aria-selected="true"]{background:var(--cream);color:var(--ink);}
+.settings-section[hidden]{display:none!important;}
+.device-footer{text-align:center;font-size:12px;color:var(--cream);opacity:.85;margin-top:9px;}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -330,20 +339,20 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 </div>
 
 <div class="panel" id="workstationPanel" style="display:none;">
-<h2>Authorize this device</h2>
+<h2>Authorize this Device</h2>
 <p class="hint">This browser must be approved once by an authorized manager before it can access reservations. Authorization is saved in this browser only.</p>
 <div id="workstationStatus" class="hint" role="status"></div>
 <div class="row"><div style="flex:1;"><label for="workstationSelect">Device</label><select id="workstationSelect"><option value="">Sign in to load available devices</option></select><p class="hint">Sign in with a manager account to load current device names. Renaming a device will not change its identity.</p></div></div>
-<div class="row"><div style="flex:1;"><label>Manager email</label><input id="deviceEmail" type="email" autocomplete="username"></div></div>
-<div class="row"><div style="flex:1;"><label>Manager password</label><input id="devicePassword" type="password" autocomplete="current-password"></div></div>
-<button class="primary-btn" id="authorizeDevice" type="button">Authorize this browser</button>
+<div class="row"><div style="flex:1;"><label>Manager Email</label><input id="deviceEmail" type="email" autocomplete="username"></div></div>
+<div class="row"><div style="flex:1;"><label>Manager Password</label><input id="devicePassword" type="password" autocomplete="current-password"></div></div>
+<button class="primary-btn" id="authorizeDevice" type="button">Authorize this Browser</button>
 <p class="hint">If this browser was already approved, use the same browser profile. Clearing its site data requires reauthorization.</p>
 </div>
 <div class="sheet" id="sheet"><div style="padding:20px;text-align:center;color:#50534C;">Loading…</div></div>
 
 <div class="panel" id="bookForm" style="display:none;">
 <button type="button" class="close-x" id="closeForm" aria-label="Close reservation form" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5 L19 19 M19 5 L5 19"/></svg></button>
-<h2 id="formTitle">New reservation</h2>
+<h2 id="formTitle">New Reservation</h2>
 <div class="row"><div style="flex:1;">
 <label>Name</label>
 <input id="fName" placeholder="Guest or member name">
@@ -367,19 +376,19 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 </div>
 <div class="price-line" id="priceLine"></div>
 <div class="err" id="formErr"></div>
-<button class="primary-btn" id="saveBtn">Save reservation</button>
+<button class="primary-btn" id="saveBtn">Save Reservation</button>
 </div>
 
 <div class="manager-tools" id="managerTools"><button class="manager-tool-btn" id="membershipToggle" type="button" aria-controls="membershipPanel" aria-expanded="false">Membership Management</button><button class="manager-tool-btn" id="settingsToggle" type="button" aria-controls="settingsPanel" aria-expanded="false">Settings</button></div>
 <div class="panel" id="membershipPanel" style="display:none">
 <h2>Membership Management</h2>
 <p class="member-note">Sign in with your personal 4-digit PIN, or use email and password.</p>
-<div id="memberLoginArea"><div class="panel" style="margin:0 0 14px;padding:13px"><h3 style="margin:0 0 10px">Manager PIN sign-in</h3><label for="pinManagerSelect">Manager</label><select id="pinManagerSelect"><option value="">Loading managers...</option></select><label for="pinLoginValue" style="display:block;margin-top:10px">4-digit PIN</label><input id="pinLoginValue" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="Enter your PIN"><button class="primary-btn" type="button" id="pinLoginBtn">Sign in with PIN</button><div class="member-note" id="pinLoginMessage" role="status"></div></div><details><summary style="cursor:pointer">Sign in with email and password instead</summary><div style="padding-top:10px"><label>Manager email</label><input id="memberEmail" type="email" autocomplete="username" placeholder="Email"><label>Password</label><input id="memberPassword" type="password" autocomplete="current-password" placeholder="Password"><div class="member-actions"><button type="button" id="memberLogin">Sign in</button></div></div></details></div>
-<div id="memberAdminArea" style="display:none"><div class="member-actions"><button id="memberLogout" type="button">Sign out of membership</button></div>
-<label>Find member (name, phone, email)</label><input id="memberSearch" placeholder="Search existing members" autocomplete="off"><div class="member-results" id="memberResults"></div>
-<h3 id="memberEditTitle">Add approved member</h3><div class="member-form-grid">
-<div><label>First name</label><input id="mFirst"></div><div><label>Last name</label><input id="mLast"></div><div><label>Phone</label><input id="mPhone" type="tel"></div><div><label>Email (optional)</label><input id="mEmail" type="email"></div><div><label>Membership type</label><input id="mType" value="Sunset Club"></div><div><label>Status</label><select id="mStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div>
-<div class="member-actions"><button id="memberSave" type="button">Save member</button><button id="memberClear" type="button">Clear form / Add new</button></div>
+<div id="memberLoginArea"><div class="panel" style="margin:0 0 14px;padding:13px"><h3 style="margin:0 0 10px">Manager PIN Sign-In</h3><label for="pinManagerSelect">Manager</label><select id="pinManagerSelect"><option value="">Loading Managers...</option></select><label for="pinLoginValue" style="display:block;margin-top:10px">4-digit PIN</label><input id="pinLoginValue" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" placeholder="Enter your PIN"><button class="primary-btn" type="button" id="pinLoginBtn">Sign in with PIN</button><div class="member-note" id="pinLoginMessage" role="status"></div></div><details><summary style="cursor:pointer">Sign in with Email and Password Instead</summary><div style="padding-top:10px"><label>Manager Email</label><input id="memberEmail" type="email" autocomplete="username" placeholder="Email"><label>Password</label><input id="memberPassword" type="password" autocomplete="current-password" placeholder="Password"><div class="member-actions"><button type="button" id="memberLogin">Sign in</button></div></div></details></div>
+<div id="memberAdminArea" style="display:none"><div class="member-actions"><button id="memberLogout" type="button">Sign Out of Membership</button></div>
+<label>Find Member (name, Phone, Email)</label><input id="memberSearch" placeholder="Search existing members" autocomplete="off"><div class="member-results" id="memberResults"></div>
+<h3 id="memberEditTitle">Add Approved Member</h3><div class="member-form-grid">
+<div><label>First Name</label><input id="mFirst"></div><div><label>Last Name</label><input id="mLast"></div><div><label>Phone</label><input id="mPhone" type="tel"></div><div><label>Email (optional)</label><input id="mEmail" type="email"></div><div><label>Membership Type</label><input id="mType" value="Sunset Club"></div><div><label>Status</label><select id="mStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div>
+<div class="member-actions"><button id="memberSave" type="button">Save Member</button><button id="memberClear" type="button">Clear Form / Add New</button></div>
 <p class="member-note">Monthly roster reconciliation will be added after manual membership management is tested. Never upload member CSVs to GitHub.</p>
 </div><div id="memberMessage" class="member-note" role="status"></div><div class="member-actions"><button id="memberClose" type="button">Close</button></div></div>
 
@@ -387,19 +396,20 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <div class="panel" id="settingsPanel" style="display:none;">
 <button type="button" class="close-x" id="closeSettings" aria-label="Close settings" title="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5 L19 19 M19 5 L5 19"/></svg></button>
 
-<div class="row">
-<div style="flex:1;"><label>Club / area name</label><input id="sClubName"></div>
+<div class="settings-tabs" role="tablist" aria-label="Settings categories"><button type="button" class="settings-tab" data-settings-tab="tee" aria-selected="true">Tee Sheet</button><button type="button" class="settings-tab" data-settings-tab="managers" aria-selected="false">Managers</button><button type="button" class="settings-tab" data-settings-tab="devices" aria-selected="false">Devices</button></div>
+<div class="settings-section" id="settingsTeeSection"><div class="row">
+<div style="flex:1;"><label>Club / Area Name</label><input id="sClubName"></div>
 </div>
 <div class="row">
-<div style="flex:1;"><label>Member price ($)</label><input id="sMemberPrice" type="number" min="0"></div>
-<div style="flex:1;"><label>Non-member price ($)</label><input id="sNonMemberPrice" type="number" min="0"></div>
+<div style="flex:1;"><label>Member Price ($)</label><input id="sMemberPrice" type="number" min="0"></div>
+<div style="flex:1;"><label>Non-member Price ($)</label><input id="sNonMemberPrice" type="number" min="0"></div>
 </div>
 <div class="row">
-<div style="flex:1;"><label>Open hour (24h)</label><input id="sSlotStart" type="number" min="0" max="23"></div>
-<div style="flex:1;"><label>Close hour (24h)</label><input id="sSlotEnd" type="number" min="1" max="24"></div>
+<div style="flex:1;"><label>Open Hour (24h)</label><input id="sSlotStart" type="number" min="0" max="23"></div>
+<div style="flex:1;"><label>Close Hour (24h)</label><input id="sSlotEnd" type="number" min="1" max="24"></div>
 </div>
 <div class="panel" id="managerPinSettings" style="margin:16px 0;padding:14px;display:none;">
-<h3 style="margin:0 0 8px;font-size:16px;">Change my manager PIN</h3>
+<h3 style="margin:0 0 8px;font-size:16px;">Change my Manager PIN</h3>
 <div>
 
 <p class="member-note">Set or change your personal 4-digit PIN. Your current email/password login remains available.</p>
@@ -408,40 +418,40 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <div class="member-note" id="myManagerPinMessage" role="status"></div>
 </div>
 </div>
-<button type="button" id="toggleManagerPinSettings" class="settings-toggle" style="margin:16px 0 8px">Change my manager PIN</button>
+<button type="button" id="toggleManagerPinSettings" class="settings-toggle" style="margin:16px 0 8px">Change my Manager PIN</button>
 <div class="row" id="legacyPinSettings" style="display:none">
 <div style="flex:1;"><label>Manager PIN</label><input id="sPin" maxlength="8"></div>
 <div style="flex:1;"><label>Admin PIN</label><input id="sAdminPin" maxlength="8"></div>
 </div>
-<div class="panel" id="managerAdminPanel" style="display:none;margin:18px 0;padding:14px">
+</div><div class="settings-section" id="settingsManagersSection" hidden><div class="panel" id="managerAdminPanel" style="display:none;margin:18px 0;padding:14px">
 <h3 style="margin:0 0 8px">Manage Managers</h3>
 <p class="hint">Administrator only. Invite new managers or disable and reactivate existing accounts.</p>
 <div class="panel" style="margin:12px 0;padding:12px">
-<h4 style="margin:0 0 10px">Invite a manager</h4>
-<div class="row"><div style="flex:1"><label for="inviteManagerName">Full name</label><input id="inviteManagerName" autocomplete="name" placeholder="First and last name"></div></div>
-<div class="row"><div style="flex:1"><label for="inviteManagerEmail">Work email</label><input id="inviteManagerEmail" type="email" autocomplete="off" placeholder="manager@example.com"></div></div>
-<button type="button" id="sendManagerInvite" class="primary-btn">Send invitation</button>
+<h4 style="margin:0 0 10px">Invite a Manager</h4>
+<div class="row"><div style="flex:1"><label for="inviteManagerName">Full Name</label><input id="inviteManagerName" autocomplete="name" placeholder="First and last name"></div></div>
+<div class="row"><div style="flex:1"><label for="inviteManagerEmail">Work Email</label><input id="inviteManagerEmail" type="email" autocomplete="off" placeholder="manager@example.com"></div></div>
+<button type="button" id="sendManagerInvite" class="primary-btn">Send Invitation</button>
 <div id="inviteManagerMessage" class="member-note" role="status"></div>
 </div>
 <div id="managerAdminList" class="member-results"></div>
 <div id="managerAdminMessage" class="member-note" role="status"></div>
-<button type="button" id="refreshManagerAdmin" class="primary-btn">Refresh managers</button>
+<button type="button" id="refreshManagerAdmin" class="primary-btn">Refresh Managers</button>
 </div>
-<div class="panel" id="deviceAdminPanel" style="display:none;margin:18px 0;padding:14px">
+</div><div class="settings-section" id="settingsDevicesSection" hidden><div class="panel" id="deviceAdminPanel" style="display:none;margin:18px 0;padding:14px">
 <h3 style="margin:0 0 8px">Manage Devices</h3>
 <p class="hint">Administrator only. Rename computers and phones without changing their authorization. Names must be unique, including inactive devices.</p>
 <label style="display:flex;align-items:center;gap:9px;margin:12px 0"><input type="checkbox" id="showInactiveDevices" style="width:auto"> Show inactive devices</label>
 <div id="deviceAdminList" class="member-results"></div>
 <div id="deviceAdminMessage" class="member-note" role="status"></div>
-<button type="button" id="refreshDeviceAdmin" class="primary-btn">Refresh devices</button>
+<button type="button" id="refreshDeviceAdmin" class="primary-btn">Refresh Devices</button>
 </div>
-<button class="primary-btn" id="saveSettingsBtn">Save settings</button>
-<div class="hint">Changing prices/hours and making instructor bookings require a verified Supabase manager login.</div>
+</div><div class="settings-section" id="settingsTeeSaveSection"><button class="primary-btn" id="saveSettingsBtn">Save Settings</button>
+<div class="hint">Changing prices/hours and making instructor bookings require a verified Supabase manager login.</div></div>
 </div>
 
 <div class="custom-dialog-backdrop" id="firstPinSetup" hidden style="z-index:9998;">
 <div class="custom-dialog" style="width:min(100%,440px);text-align:left;">
-<h2 style="margin:0 0 8px">Set up your manager PIN</h2>
+<h2 style="margin:0 0 8px">Set Up Your Manager PIN</h2>
 <p style="font-size:15px;line-height:1.5">Welcome! Before using manager tools, create your personal 4-digit PIN. You can change it later in Settings.</p>
 <label for="firstPinValue">New 4-digit PIN</label>
 <input id="firstPinValue" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="4 digits" style="margin:6px 0 12px">
@@ -449,9 +459,9 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <input id="firstPinConfirm" type="password" inputmode="numeric" maxlength="4" autocomplete="new-password" placeholder="Repeat PIN" style="margin:6px 0 12px">
 <div id="firstPinMessage" class="member-note" role="status"></div>
 <button type="button" id="firstPinSave" class="primary-btn">Save my PIN</button>
-<button type="button" id="firstPinSignOut" class="settings-toggle" style="color:var(--cream);margin:14px 0 0">Sign out instead</button>
+<button type="button" id="firstPinSignOut" class="settings-toggle" style="color:var(--cream);margin:14px 0 0">Sign Out Instead</button>
 </div></div>
-<div class="role-footer"><button class="role-pill" id="roleBtn">Front Desk</button></div>
+<div class="role-footer"><button class="role-pill" id="roleBtn">Front Desk</button></div><div class="device-footer" id="currentDeviceLabel" aria-live="polite">Device: Checking authorization...</div>
 </div>
 
 <div class="booking-notice-backdrop" id="bookingNotice" hidden>
@@ -503,7 +513,17 @@ async function verifyDevice(){
     catch(e){console.warn('Device verification failed',e);}
   }
   document.getElementById('workstationPanel').style.display=workstationReady?'none':'block';
+  await updateCurrentDeviceLabel();
   return workstationReady;
+}
+async function updateCurrentDeviceLabel(){
+ const label=document.getElementById('currentDeviceLabel');
+ if(!workstationReady){label.textContent='Device: Not Authorized';return;}
+ try{
+  // Device listing is available to authenticated managers only; cache the selected UUID/name during authorization.
+  const saved=localStorage.getItem('gr-short-game-device-label-v1');
+  label.textContent='Device: '+(saved||'Authorized PC');
+ }catch(e){label.textContent='Device: Authorized PC';}
 }
 // Device authorization uses immutable UUIDs; display names are labels only.
 const workstationNameOrder=new Intl.Collator(undefined,{numeric:true,sensitivity:'base'});
@@ -539,6 +559,7 @@ document.getElementById('authorizeDevice').onclick=async()=>{
     }
     const token=await rpc('authorize_staff_workstation_by_id',{p_workstation_id:deviceId});
     if(typeof token!=='string'||!/^[a-f0-9]{64}$/i.test(token))throw new Error('Unexpected authorization response.');
+    localStorage.setItem('gr-short-game-device-label-v1',select.selectedOptions[0].textContent);
     workstationToken=token;
     localStorage.setItem(WORKSTATION_KEY,token);
     if(!await verifyDevice())throw new Error('Device token could not be verified.');
@@ -1065,6 +1086,16 @@ document.getElementById('settingsToggle').onclick = async () => {
 };
 
 
+async function selectSettingsTab(tab){
+ for(const b of document.querySelectorAll('[data-settings-tab]'))b.setAttribute('aria-selected',String(b.dataset.settingsTab===tab));
+ document.getElementById('settingsTeeSection').hidden=tab!=='tee';
+ document.getElementById('settingsTeeSaveSection').hidden=tab!=='tee';
+ document.getElementById('settingsManagersSection').hidden=tab!=='managers';
+ document.getElementById('settingsDevicesSection').hidden=tab!=='devices';
+ if(tab==='managers')await loadManagerAdminPanel();
+ if(tab==='devices')await loadDeviceAdminPanel();
+}
+for(const b of document.querySelectorAll('[data-settings-tab]'))b.addEventListener('click',()=>selectSettingsTab(b.dataset.settingsTab));
 document.getElementById('closeSettings').onclick = () => {document.getElementById('settingsPanel').style.display='none';syncManagerToolButtons();};
 
 document.getElementById('saveSettingsBtn').onclick=async()=>{
@@ -1258,6 +1289,9 @@ async function refreshPinManagerList(){
     if([...select.options].some(o=>o.value===old))select.value=old;
   }catch(e){select.replaceChildren(new Option('Manager list unavailable',''));console.warn(e);}
 }
+document.getElementById('pinLoginValue').addEventListener('keydown',e=>{
+ if(e.key==='Enter'&&!e.isComposing){e.preventDefault();document.getElementById('pinLoginBtn').click();}
+});
 document.getElementById('pinLoginBtn').onclick=async()=>{
   const btn=document.getElementById('pinLoginBtn');
   const message=document.getElementById('pinLoginMessage');
@@ -1336,6 +1370,8 @@ document.getElementById('firstPinSave').onclick=async()=>{
     await checkMemberSession();
     if(!memberAuthenticated)throw new Error('Your session expired. Please sign in again.');
     await rpc('set_my_short_game_pin',{p_pin:pin});
+    await rpc('complete_short_game_invite');
+    await refreshPinManagerList();
     document.getElementById('firstPinValue').value='';
     document.getElementById('firstPinConfirm').value='';
     document.getElementById('firstPinSetup').hidden=true;
@@ -1344,9 +1380,9 @@ document.getElementById('firstPinSave').onclick=async()=>{
   finally{btn.disabled=false;}
 };
 
-function clearMemberForm(){editingMemberId=null;['mFirst','mLast','mPhone','mEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('mType').value='Sunset Club';document.getElementById('mStatus').value='active';document.getElementById('memberEditTitle').textContent='Add approved member';}
+function clearMemberForm(){editingMemberId=null;['mFirst','mLast','mPhone','mEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('mType').value='Sunset Club';document.getElementById('mStatus').value='active';document.getElementById('memberEditTitle').textContent='Add Approved Member';}
 document.getElementById('memberClear').onclick=clearMemberForm;
-document.getElementById('memberSearch').oninput=()=>{clearTimeout(memberSearchTimer);const q=document.getElementById('memberSearch').value.trim();if(q.length<2){document.getElementById('memberResults').replaceChildren();return;}memberSearchTimer=setTimeout(async()=>{try{showMatches(document.getElementById('memberResults'),await findMembers(q),m=>{editingMemberId=m.id;document.getElementById('mFirst').value=m.first_name||'';document.getElementById('mLast').value=m.last_name||'';document.getElementById('mPhone').value=m.phone||'';document.getElementById('mEmail').value=m.email||'';document.getElementById('mType').value=m.membership_type||'';document.getElementById('mStatus').value=m.membership_status||'active';document.getElementById('memberEditTitle').textContent='Edit member';memberMsg('Editing selected member.');});}catch(e){memberMsg(e.message);}},250);};
+document.getElementById('memberSearch').oninput=()=>{clearTimeout(memberSearchTimer);const q=document.getElementById('memberSearch').value.trim();if(q.length<2){document.getElementById('memberResults').replaceChildren();return;}memberSearchTimer=setTimeout(async()=>{try{showMatches(document.getElementById('memberResults'),await findMembers(q),m=>{editingMemberId=m.id;document.getElementById('mFirst').value=m.first_name||'';document.getElementById('mLast').value=m.last_name||'';document.getElementById('mPhone').value=m.phone||'';document.getElementById('mEmail').value=m.email||'';document.getElementById('mType').value=m.membership_type||'';document.getElementById('mStatus').value=m.membership_status||'active';document.getElementById('memberEditTitle').textContent='Edit Member';memberMsg('Editing selected member.');});}catch(e){memberMsg(e.message);}},250);};
 document.getElementById('memberSave').onclick=async()=>{if(!memberAuthenticated)return memberMsg('Sign in first.');const first_name=document.getElementById('mFirst').value.trim(),last_name=document.getElementById('mLast').value.trim();if(!first_name||!last_name)return memberMsg('First and last name required.');const payload={first_name,last_name,phone:document.getElementById('mPhone').value.trim()||null,email:document.getElementById('mEmail').value.trim()||null,membership_type:document.getElementById('mType').value.trim(),membership_status:document.getElementById('mStatus').value,updated_at:new Date().toISOString()};try{let response;if(editingMemberId){response=await supabaseClient.from('members').update(payload).eq('id',editingMemberId).select('id').single();}else{response=await supabaseClient.from('members').insert({...payload,source:'manual',manually_verified:true}).select('id').single();}if(response.error)throw response.error;clearMemberForm();document.getElementById('memberSearch').value='';document.getElementById('memberResults').replaceChildren();memberMsg('Member saved successfully.');}catch(e){memberMsg('Save failed: '+e.message);}};
 document.getElementById('bookingMemberSearch').oninput=()=>{
   resetVerifiedSelectionOnly();clearTimeout(memberSearchTimer);
