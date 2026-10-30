@@ -397,7 +397,7 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 </div>
 
 <div id="memberAdminArea" style="display:none"><div class="member-actions"><button id="memberLogout" type="button">Sign Out of Membership</button></div>
-<label>Find Member (name, Phone, Email)</label><input id="memberSearch" placeholder="Search existing members" autocomplete="off"><div class="member-results" id="memberResults"></div>
+<label>Find Member (name, Phone, Email)</label><input id="memberSearch" type="search" name="grgc_roster_lookup_query" placeholder="Search existing members" autocomplete="off" autocapitalize="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')" onpointerdown="this.removeAttribute('readonly')"><div class="member-results" id="memberResults"></div>
 <h3 id="memberEditTitle">Add Approved Member</h3><div class="member-form-grid">
 <div><label>First Name</label><input id="mFirst"></div><div><label>Last Name</label><input id="mLast"></div><div><label>Phone</label><input id="mPhone" type="tel"></div><div><label>Email (optional)</label><input id="mEmail" type="email"></div><div><label>Membership Type</label><input id="mType" value="Sunset Club"></div><div><label>Status</label><select id="mStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div>
 <div class="member-actions"><button id="memberSave" type="button">Save Member</button><button id="memberClear" type="button">Clear Form / Add New</button></div>
