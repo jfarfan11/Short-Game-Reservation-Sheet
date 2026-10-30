@@ -356,6 +356,7 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <div class="row"><div style="flex:1;"><label>Manager Password</label><input id="devicePassword" type="password" autocomplete="current-password"></div></div>
 <button class="primary-btn" id="authorizeDevice" type="button">Authorize this Browser</button>
 <p class="hint">If this browser was already approved, use the same browser profile. Clearing its site data requires reauthorization.</p>
+<div style="margin-top:16px;border-top:1px solid var(--line);padding-top:12px"><h3 style="font-size:15px">Complete Existing Manager Account</h3><p class="hint">If you already accepted an invitation but did not create your password and PIN, request an account setup email.</p><label for="managerRecoveryEmail">Manager Email</label><input id="managerRecoveryEmail" type="email" autocomplete="email" placeholder="Your work email"><button class="primary-btn" type="button" id="requestManagerRecovery">Email Account Setup Link</button><div class="member-note" id="managerRecoveryMessage" role="status"></div></div>
 </div>
 <div class="sheet" id="sheet"><div style="padding:20px;text-align:center;color:#50534C;">Loading…</div></div>
 
@@ -1443,10 +1444,25 @@ document.getElementById('fPhone').addEventListener('input',resetVerifiedSelectio
 const inviteOnboard=document.getElementById('inviteOnboarding');
 const inviteUrl=new URL(window.location.href);
 const inviteHash=new URLSearchParams(window.location.hash.replace(/^#/,''));
-const invitationLink=inviteUrl.searchParams.has('code') || inviteUrl.searchParams.has('token_hash') ||
+const invitationLink=inviteUrl.searchParams.has('code') || inviteUrl.searchParams.has('token_hash') || inviteUrl.searchParams.has('manager_setup') ||
   inviteHash.has('access_token') || ['invite','recovery','signup','magiclink'].includes(inviteHash.get('type')) ||
   ['invite','recovery'].includes(inviteUrl.searchParams.get('type'));
 let invitationFlow=invitationLink;
+document.getElementById('requestManagerRecovery').onclick=async()=>{
+  const email=document.getElementById('managerRecoveryEmail').value.trim().toLowerCase();
+  const status=document.getElementById('managerRecoveryMessage');
+  const button=document.getElementById('requestManagerRecovery');
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){status.textContent='Enter a valid work email address.';return;}
+  button.disabled=true;status.textContent='Requesting setup link...';
+  try{
+    const redirectTo=new URL(window.location.pathname,window.location.origin);
+    redirectTo.searchParams.set('manager_setup','1');
+    const {error}=await supabaseClient.auth.resetPasswordForEmail(email,{redirectTo:redirectTo.toString()});
+    if(error)throw error;
+    status.textContent='If this manager account exists, an account setup link will be emailed. Check your inbox and spam folder.';
+  }catch(e){status.textContent='Could not request link: '+e.message;}
+  finally{button.disabled=false;}
+};
 function showInviteOnboarding(user){
   if(!user)return;
   document.getElementById('inviteOnboardEmail').textContent=user.email||'';
@@ -1463,6 +1479,13 @@ async function prepareInvitation(){
   const status=document.getElementById('inviteOnboardMessage');
   try{
     if(inviteUrl.searchParams.get('error')||inviteHash.get('error'))throw new Error(inviteUrl.searchParams.get('error_description')||inviteHash.get('error_description')||'Invitation link expired. Request a new invitation.');
+    // Handle both PKCE code callbacks and token_hash email templates.
+    const tokenHash=inviteUrl.searchParams.get('token_hash');
+    const linkType=inviteUrl.searchParams.get('type');
+    if(tokenHash && ['invite','recovery','magiclink','signup'].includes(linkType)){
+      const {error}=await supabaseClient.auth.verifyOtp({token_hash:tokenHash,type:linkType});
+      if(error)throw error;
+    }
     let session=await getInvitationSession();
     if(!session){
       // Supabase may still be exchanging the invitation's code for a session.
@@ -1471,14 +1494,14 @@ async function prepareInvitation(){
         session=await getInvitationSession();
       }
     }
-    if(!session)throw new Error('Could not verify this invitation. The link may have expired. Ask the administrator for a new invitation.');
+    if(!session)throw new Error('Could not verify this account setup link. It may have expired. Request another account setup email.');
     const authorized=await rpc('is_membership_manager');
-    if(authorized!==true)throw new Error('This invitation is not associated with an active manager account. Contact the administrator.');
+    if(authorized!==true)throw new Error('This link is not associated with an active manager account. Contact the administrator.');
     showInviteOnboarding(session.user);
     return true;
   }catch(e){
     inviteOnboard.hidden=false;
-    status.textContent=e.message;
+    status.textContent=e.message+' Close this window and request a new account setup link if needed.';
     document.getElementById('inviteFinish').disabled=true;
     return true;
   }
