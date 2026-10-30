@@ -181,6 +181,7 @@ color:var(--cream);
 font-family:var(--brand-font);
 font-size:14px;
 }
+input::placeholder{color:#F0F5EE;opacity:1;}
 .check{display:flex;align-items:center;gap:8px;font-size:13px;margin:10px 0;color:var(--sage);}
 .check input{width:auto;}
 .primary-btn{
@@ -374,6 +375,13 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <p class="member-note">Secure manager sign-in is required. Enter your manager email and password to access manager tools.</p>
 <div id="memberLoginArea"><label>Manager email</label><input id="memberEmail" type="email" autocomplete="username" placeholder="Email"><label>Password</label><input id="memberPassword" type="password" autocomplete="current-password" placeholder="Password"><div class="member-actions"><button type="button" id="memberLogin">Sign in</button></div></div>
 <div id="memberAdminArea" style="display:none"><div class="member-actions"><button id="memberLogout" type="button">Sign out of membership</button></div>
+<div class="panel" style="margin:10px 0 18px;padding:14px;">
+<h3 style="margin:0 0 8px;font-size:16px;">My manager PIN</h3>
+<p class="member-note">Set or change your personal 4-digit PIN. Your current email/password login remains available.</p>
+<div class="row"><div style="flex:1"><label for="myManagerPin">New 4-digit PIN</label><input id="myManagerPin" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="4 digits"></div><div style="flex:1"><label for="myManagerPinConfirm">Confirm PIN</label><input id="myManagerPinConfirm" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="new-password" placeholder="Repeat PIN"></div></div>
+<button class="primary-btn" id="saveMyManagerPin" type="button">Set My 4-Digit PIN</button>
+<div class="member-note" id="myManagerPinMessage" role="status"></div>
+</div>
 <label>Find member (name, phone, email)</label><input id="memberSearch" placeholder="Search existing members" autocomplete="off"><div class="member-results" id="memberResults"></div>
 <h3 id="memberEditTitle">Add approved member</h3><div class="member-form-grid">
 <div><label>First name</label><input id="mFirst"></div><div><label>Last name</label><input id="mLast"></div><div><label>Phone</label><input id="mPhone" type="tel"></div><div><label>Email (optional)</label><input id="mEmail" type="email"></div><div><label>Membership type</label><input id="mType" value="Sunset Club"></div><div><label>Status</label><select id="mStatus"><option value="active">Active</option><option value="inactive">Inactive</option></select></div></div>
@@ -436,7 +444,7 @@ const supabaseClient = supabase.createClient(
 
 const WORKSTATION_KEY = 'gr-short-game-workstation-v1';
 const MANAGER_SESSION_KEY = 'gr-short-game-manager-session-start-v1';
-const MANAGER_MAX_MS = 10 * 60 * 1000;
+const MANAGER_MAX_MS = 5 * 60 * 1000;
 const MANAGER_TYPING_GRACE_MS = 60 * 1000;
 let workstationToken = localStorage.getItem(WORKSTATION_KEY) || '';
 let workstationReady = false;
@@ -811,7 +819,7 @@ document.getElementById('sPin').value = state.settings.managerPin;
 document.getElementById('sAdminPin').value = state.settings.adminPin;
 }
 
-// Manager access has a fixed ten-minute limit. Only active typing in an
+// Manager access has a fixed five-minute limit. Only active typing in an
 // open manager form can delay logout, for up to 60 seconds after the last keystroke.
 // The workstation authorization token is independent and is never cleared here.
 let managerLastTypingAt = 0;
@@ -866,7 +874,7 @@ function managerSessionExpired(){
   if(!started)return false;
   const now=Date.now();
   if(now-started < MANAGER_MAX_MS)return false;
-  // After ten minutes, typing may postpone logout only while currently typing.
+  // After five minutes, typing may postpone logout only while currently typing.
   return !(managerIsTyping() && managerLastTypingAt >= started && now-managerLastTypingAt < MANAGER_TYPING_GRACE_MS);
 }
 async function enforceManagerTimeout(){
@@ -1029,8 +1037,27 @@ async function checkMemberSession(){if(managerSessionExpired()){await endManager
 function updateMemberAuthUI(){document.getElementById('memberLoginArea').style.display=memberAuthenticated?'none':'block';document.getElementById('memberAdminArea').style.display=memberAuthenticated?'block':'none';document.getElementById('bookingMemberLookup').style.display=document.getElementById('bookForm').style.display==='none'?'none':'block';}
 document.getElementById('membershipToggle').onclick=async()=>{const panel=document.getElementById('membershipPanel');panel.style.display=panel.style.display==='none'?'block':'none';if(panel.style.display!=='none'){document.getElementById('settingsPanel').style.display='none';await checkMemberSession();updateMemberAuthUI();}syncManagerToolButtons();};
 document.getElementById('memberClose').onclick=()=>{document.getElementById('membershipPanel').style.display='none';syncManagerToolButtons();};
-document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;startManagerSessionClock();await checkMemberSession();if(!memberAuthenticated){clearManagerSessionClock();await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}setRole('manager');updateMemberAuthUI();memberMsg('Manager signed in. Session expires in 10 minutes unless actively typing.');}catch(e){memberMsg(e.message);}};
+document.getElementById('memberLogin').onclick=async()=>{memberMsg('Signing in...');const email=document.getElementById('memberEmail').value.trim(),password=document.getElementById('memberPassword').value;try{const {error}=await supabaseClient.auth.signInWithPassword({email,password});document.getElementById('memberPassword').value='';if(error)throw error;startManagerSessionClock();await checkMemberSession();if(!memberAuthenticated){clearManagerSessionClock();await supabaseClient.auth.signOut();throw new Error('This account is not authorized for membership management.');}setRole('manager');updateMemberAuthUI();memberMsg('Manager signed in. Session expires in 5 minutes unless actively typing.');}catch(e){memberMsg(e.message);}};
 document.getElementById('memberLogout').onclick=async()=>{await endManagerSession('Manager signed out.');};
+document.getElementById('saveMyManagerPin').onclick=async()=>{
+  const btn=document.getElementById('saveMyManagerPin');
+  const msg=document.getElementById('myManagerPinMessage');
+  const pin=document.getElementById('myManagerPin').value;
+  const confirm=document.getElementById('myManagerPinConfirm').value;
+  if(!/^[0-9]{4}$/.test(pin)){msg.textContent='Enter exactly four digits.';return;}
+  if(pin!==confirm){msg.textContent='PINs do not match.';return;}
+  btn.disabled=true;msg.textContent='Saving PIN...';
+  try{
+    await checkMemberSession();
+    if(!memberAuthenticated)throw new Error('Your manager login has expired. Sign in again.');
+    await rpc('set_my_short_game_pin',{p_pin:pin});
+    document.getElementById('myManagerPin').value='';
+    document.getElementById('myManagerPinConfirm').value='';
+    msg.textContent='Your manager PIN was saved.';
+  }catch(e){msg.textContent='Could not save PIN: '+e.message;}
+  finally{btn.disabled=false;}
+};
+
 function clearMemberForm(){editingMemberId=null;['mFirst','mLast','mPhone','mEmail'].forEach(id=>document.getElementById(id).value='');document.getElementById('mType').value='Sunset Club';document.getElementById('mStatus').value='active';document.getElementById('memberEditTitle').textContent='Add approved member';}
 document.getElementById('memberClear').onclick=clearMemberForm;
 document.getElementById('memberSearch').oninput=()=>{clearTimeout(memberSearchTimer);const q=document.getElementById('memberSearch').value.trim();if(q.length<2){document.getElementById('memberResults').replaceChildren();return;}memberSearchTimer=setTimeout(async()=>{try{showMatches(document.getElementById('memberResults'),await findMembers(q),m=>{editingMemberId=m.id;document.getElementById('mFirst').value=m.first_name||'';document.getElementById('mLast').value=m.last_name||'';document.getElementById('mPhone').value=m.phone||'';document.getElementById('mEmail').value=m.email||'';document.getElementById('mType').value=m.membership_type||'';document.getElementById('mStatus').value=m.membership_status||'active';document.getElementById('memberEditTitle').textContent='Edit member';memberMsg('Editing selected member.');});}catch(e){memberMsg(e.message);}},250);};
