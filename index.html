@@ -299,6 +299,15 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 .settings-tab[aria-selected="true"]{background:var(--cream);color:var(--ink);}
 .settings-section[hidden]{display:none!important;}
 .device-footer{text-align:center;font-size:12px;color:var(--cream);opacity:.85;margin-top:9px;}
+
+/* Invitation onboarding is available before workstation authorization. */
+.invite-onboard-backdrop{position:fixed;inset:0;z-index:11000;background:#203F20;display:flex;align-items:center;justify-content:center;padding:18px;overflow-y:auto}
+.invite-onboard-backdrop[hidden]{display:none!important}
+.invite-onboard-card{width:min(100%,440px);background:#244823;border:1px solid rgba(241,234,240,.4);border-radius:12px;padding:25px;color:#FAF7F8;box-shadow:0 18px 55px rgba(0,0,0,.35)}
+.invite-onboard-card h2{margin:0 0 9px;font-size:24px}
+.invite-onboard-card p{font-size:14px;line-height:1.5}
+.invite-onboard-card label{display:block;margin:13px 0 5px;font-size:13px}
+.invite-onboard-card input{width:100%}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -464,6 +473,20 @@ font-family:var(--brand-font);text-decoration:underline;cursor:pointer;margin-to
 <div class="role-footer"><button class="role-pill" id="roleBtn">Front Desk</button></div><div class="device-footer" id="currentDeviceLabel" aria-live="polite">Device: Checking authorization...</div>
 </div>
 
+<div id="inviteOnboarding" class="invite-onboard-backdrop" hidden role="dialog" aria-modal="true" aria-labelledby="inviteOnboardTitle">
+ <div class="invite-onboard-card">
+  <h2 id="inviteOnboardTitle">Create Your Manager Account</h2>
+  <p>Welcome to Green River Golf Club. Create your password and personal 4-digit PIN. You can authorize a workstation after your account is ready.</p>
+  <div id="inviteOnboardEmail" class="hint"></div>
+  <label for="inviteNewPassword">Create Password (at least 8 characters)</label><input id="inviteNewPassword" type="password" autocomplete="new-password" minlength="8">
+  <label for="inviteConfirmPassword">Confirm Password</label><input id="inviteConfirmPassword" type="password" autocomplete="new-password">
+  <label for="inviteNewPin">Create 4-digit PIN</label><input id="inviteNewPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off">
+  <label for="inviteConfirmPin">Confirm PIN</label><input id="inviteConfirmPin" type="password" inputmode="numeric" maxlength="4" autocomplete="off">
+  <div id="inviteOnboardMessage" class="member-note" role="status"></div>
+  <button type="button" id="inviteFinish" class="primary-btn">Create My Account</button>
+  <button type="button" id="inviteOnboardSignOut" class="settings-toggle" style="color:#FAF7F8">Sign Out</button>
+ </div>
+</div>
 <div class="booking-notice-backdrop" id="bookingNotice" hidden>
   <div class="booking-notice-ball" role="alertdialog" aria-modal="true" aria-labelledby="bookingNoticeMessage">
     <div class="booking-notice-content">
@@ -1416,7 +1439,90 @@ function resetVerifiedSelectionOnly(){verifiedBookingMember=null;document.getEle
 document.getElementById('fName').addEventListener('input',resetVerifiedSelectionOnly);
 document.getElementById('fPhone').addEventListener('input',resetVerifiedSelectionOnly);
 
+// Invitation links are handled independently of workstation authorization.
+const inviteOnboard=document.getElementById('inviteOnboarding');
+const inviteUrl=new URL(window.location.href);
+const inviteHash=new URLSearchParams(window.location.hash.replace(/^#/,''));
+const invitationLink=inviteUrl.searchParams.has('code') || inviteUrl.searchParams.has('token_hash') ||
+  inviteHash.has('access_token') || ['invite','recovery','signup','magiclink'].includes(inviteHash.get('type')) ||
+  ['invite','recovery'].includes(inviteUrl.searchParams.get('type'));
+let invitationFlow=invitationLink;
+function showInviteOnboarding(user){
+  if(!user)return;
+  document.getElementById('inviteOnboardEmail').textContent=user.email||'';
+  inviteOnboard.hidden=false;
+}
+async function getInvitationSession(){
+  // Supabase JS processes the confirmation link and establishes the session.
+  const {data,error}=await supabaseClient.auth.getSession();
+  if(error)throw error;
+  return data?.session||null;
+}
+async function prepareInvitation(){
+  if(!invitationFlow)return false;
+  const status=document.getElementById('inviteOnboardMessage');
+  try{
+    if(inviteUrl.searchParams.get('error')||inviteHash.get('error'))throw new Error(inviteUrl.searchParams.get('error_description')||inviteHash.get('error_description')||'Invitation link expired. Request a new invitation.');
+    let session=await getInvitationSession();
+    if(!session){
+      // Supabase may still be exchanging the invitation's code for a session.
+      for(let i=0;i<8&&!session;i++){
+        await new Promise(resolve=>setTimeout(resolve,300));
+        session=await getInvitationSession();
+      }
+    }
+    if(!session)throw new Error('Could not verify this invitation. The link may have expired. Ask the administrator for a new invitation.');
+    const authorized=await rpc('is_membership_manager');
+    if(authorized!==true)throw new Error('This invitation is not associated with an active manager account. Contact the administrator.');
+    showInviteOnboarding(session.user);
+    return true;
+  }catch(e){
+    inviteOnboard.hidden=false;
+    status.textContent=e.message;
+    document.getElementById('inviteFinish').disabled=true;
+    return true;
+  }
+}
+document.getElementById('inviteFinish').onclick=async()=>{
+  const button=document.getElementById('inviteFinish');
+  const status=document.getElementById('inviteOnboardMessage');
+  const password=document.getElementById('inviteNewPassword').value;
+  const password2=document.getElementById('inviteConfirmPassword').value;
+  const pin=document.getElementById('inviteNewPin').value;
+  const pin2=document.getElementById('inviteConfirmPin').value;
+  if(password.length<8){status.textContent='Use a password with at least 8 characters.';return;}
+  if(password!==password2){status.textContent='Passwords do not match.';return;}
+  if(!/^[0-9]{4}$/.test(pin)){status.textContent='PIN must contain exactly 4 digits.';return;}
+  if(pin!==pin2){status.textContent='PINs do not match.';return;}
+  button.disabled=true;status.textContent='Creating your account...';
+  try{
+    const session=await getInvitationSession();
+    if(!session)throw new Error('Your invitation session expired. Please reopen the invitation link.');
+    const {error}=await supabaseClient.auth.updateUser({password});
+    if(error)throw error;
+    await rpc('set_my_short_game_pin',{p_pin:pin});
+    await rpc('complete_short_game_invite');
+    // Never leave the manager session open on an unapproved device.
+    await supabaseClient.auth.signOut();
+    clearManagerSessionClock();memberAuthenticated=false;setRole('front');updateMemberAuthUI();
+    for(const id of ['inviteNewPassword','inviteConfirmPassword','inviteNewPin','inviteConfirmPin'])document.getElementById(id).value='';
+    inviteOnboard.hidden=true;invitationFlow=false;
+    history.replaceState(null,'',location.pathname);
+    await siteAlert('Your manager account is ready. Sign in with your email and password to authorize a workstation, or use your PIN on an already authorized computer.');
+    await verifyDevice();await refreshPinManagerList();
+  }catch(e){status.textContent='Account setup not completed: '+e.message+' You can retry without sending another invitation.';}
+  finally{button.disabled=false;}
+};
+document.getElementById('inviteOnboardSignOut').onclick=async()=>{
+  await supabaseClient.auth.signOut();
+  clearManagerSessionClock();memberAuthenticated=false;setRole('front');updateMemberAuthUI();
+  inviteOnboard.hidden=true;invitationFlow=false;
+  history.replaceState(null,'',location.pathname);
+  await verifyDevice();
+};
+
 (async function init(){
+if(await prepareInvitation())return;
 await verifyDevice();
 try{await loadSettings();}catch(e){console.error('Settings unavailable',e);}
 await checkMemberSession();
